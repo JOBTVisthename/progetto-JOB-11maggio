@@ -1,11 +1,11 @@
-import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
-// Public Stripe key - should be loaded from environment variables
-export const STRIPE_PUBLIC_KEY = 'pk_test_51SXqufJUn7rAfob6hjiwEXTGL5PPkn2nQXXEjjXueOfS6u7UdHBrwN4GuSClKIVSle0ccrAqsVzGOPkh2IpCU75F00n61XlgZJ';
+// Stripe disabled - using mock mode only
+export const STRIPE_PUBLIC_KEY = '';
 
-export const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
+// Mock stripe promise - Stripe is disabled
+export const stripePromise = Promise.resolve(null);
 
 // Plan configurations
 export const PRICING_PLANS = {
@@ -94,28 +94,12 @@ export const createCheckoutSession = async (planId: PlanId, userEmail: string, u
   }
 };
 
-// Redirect to checkout
+// Redirect to checkout - Stripe disabled, always using mock mode
 export const redirectToCheckout = async (planId: PlanId, userEmail: string, userId: string) => {
   const checkoutData = await createCheckoutSession(planId, userEmail, userId);
-  
-  // Check if this is a mock response
-  if (checkoutData.isMock) {
-    // For mock mode, redirect to success page directly
-    window.location.href = `/profile?tab=subscription&success=true&mock=true`;
-    return;
-  }
 
-  // For real Stripe, use the session ID
-  const sessionId = checkoutData.sessionId;
-  
-  // Redirect to Stripe Checkout using direct URL
-  const stripe = await stripePromise;
-  if (!stripe) {
-    throw new Error('Stripe failed to load');
-  }
-
-  // Use Stripe's checkout URL format
-  window.location.href = `https://checkout.stripe.com/pay/${sessionId}`;
+  // Always use mock mode since Stripe is disabled
+  window.location.href = `/profile?tab=subscription&success=true&mock=true`;
 };
 
 // Get user's subscription from database

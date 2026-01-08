@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -37,30 +37,36 @@ export default function LoginForm() {
     try {
       await signIn(values.email, values.password);
 
-      // Fetch user profile type to redirect correctly
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('user_type')
-          .eq('id', user.id)
-          .single();
+      // Show success message
+      toast({
+        title: "Login effettuato",
+        description: "Bentornato su JobTV!",
+        variant: "default",
+      });
 
-        toast({
-          title: "Login effettuato",
-          description: "Bentornato su JobTV!",
-          variant: "default",
-        });
+      // Fetch user profile and redirect
+      setTimeout(async () => {
+        const { data: { user } } = await supabase.auth.getUser();
 
-        if (profile?.user_type === 'company') {
-          navigate("/company/dashboard");
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('user_type')
+            .eq('id', user.id)
+            .single();
+
+          if (profile?.user_type === 'company') {
+            navigate("/company/dashboard");
+          } else {
+            navigate("/dashboard");
+          }
         } else {
-          // Candidates go to Matches page which is their "dashboard" effectively or we can create a specific dashboard
-          navigate("/dashboard");
+          navigate("/");
         }
-      } else {
-        navigate("/");
-      }
+
+        setLoading(false);
+      }, 500);
+
     } catch (error: any) {
       console.error("Login error:", error);
       let errorMessage = "Credenziali non valide. Riprova.";
@@ -78,7 +84,7 @@ export default function LoginForm() {
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
+
       setLoading(false);
     }
   };

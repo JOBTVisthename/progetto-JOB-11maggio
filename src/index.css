@@ -121,68 +121,68 @@
   .card-hover {
     @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary/20;
   }
-  
+
   .jobtv-button {
     @apply bg-jobtv-gradient text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 relative overflow-hidden;
   }
-  
+
   .jobtv-button::before {
     @apply absolute inset-0 bg-white opacity-0 transition-opacity duration-300;
     content: '';
   }
-  
+
   .jobtv-button:hover::before {
     @apply opacity-20;
   }
-  
+
   .jobtv-button-outline {
     @apply border-2 border-jobtv-teal text-jobtv-teal font-semibold py-3 px-8 rounded-full hover:bg-jobtv-teal/10 hover:border-jobtv-blue hover:text-jobtv-blue transition-all duration-300 hover:scale-105;
   }
-  
+
   .jobtv-card {
     @apply bg-white rounded-2xl shadow-lg p-8 card-hover border border-gray-100/50;
   }
-  
+
   .jobtv-input {
     @apply border-2 border-gray-200 focus:border-jobtv-teal focus:ring-2 focus:ring-jobtv-teal/20 transition-all duration-300 rounded-xl px-4 py-3;
   }
-  
+
   .glass-effect {
     @apply bg-white/80 backdrop-blur-md border border-white/20;
   }
-  
+
   .gradient-text {
     @apply bg-gradient-to-r from-jobtv-teal to-jobtv-blue bg-clip-text text-transparent;
   }
-  
+
   .section-padding {
     @apply py-12 md:py-16 lg:py-24;
   }
-  
+
   .container-padding {
     @apply px-4 sm:px-6 lg:px-8;
   }
-  
+
   .feature-card {
     @apply bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 border border-gray-100/50 hover:border-jobtv-teal/30;
   }
-  
+
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .animate-fade-in {
     animation: fadeIn 0.6s ease-out;
   }
-  
+
   .animate-slide-up {
     animation: slideUp 0.8s ease-out;
   }
-  
+
   .animate-slide-in-right {
     animation: slideInRight 0.8s ease-out;
   }
-  
+
   .animate-slide-in-left {
     animation: slideInLeft 0.8s ease-out;
   }
@@ -193,6 +193,27 @@
 
   .container {
     @apply max-w-7xl mx-auto;
+  }
+
+  /* Navigation Styles */
+  .nav-item-active {
+    @apply bg-primary/10 text-primary border border-primary/20 shadow-sm;
+  }
+
+  .nav-item-inactive {
+    @apply text-foreground/70 hover:text-foreground hover:bg-accent;
+  }
+
+  .mobile-nav-item {
+    @apply flex flex-col items-center gap-1 px-2 py-1 rounded-lg transition-all duration-200 relative min-w-0 flex-1;
+  }
+
+  .mobile-nav-item-active {
+    @apply text-primary;
+  }
+
+  .mobile-nav-item-inactive {
+    @apply text-foreground/50 hover:text-foreground;
   }
 }
 
