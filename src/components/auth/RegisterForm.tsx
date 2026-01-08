@@ -112,46 +112,18 @@ export default function RegisterForm() {
       );
 
       // Handle CV Upload if candidate and user is created
-      // Note: If email confirmation is required, we might not have a session to upload.
-      // We attempt to upload if we have a user ID.
-      // Actually, signUpResult might be void if I typed it wrong in Context, but useAuthService returns data now.
-      // useAuth returns a promise that resolves to void in the Type definition (AuthContext.tsx) BUT the implementation calls useAuthService which returns data.
-      // However, AuthContext definition needs to return any or generic.
-      // Let's assume signUpResult is available or check session via supabase.auth.getSession()
+      // NOTE: With email confirmation enabled, the user won't have an active session
+      // until they confirm their email. The CV upload will be handled after email
+      // confirmation when the user is redirected to the email confirmation page.
+      // For now, we redirect to the email confirmation page.
 
       if (userType === 'candidate' && cvFile) {
-        // We pause a bit to allow triggers to run? No need.
-        // We need the user ID. 
-        // If signUp doesn't return user, we might be in trouble if auto-login failed.
-
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-
-        if (currentUser) {
-          const fileExt = cvFile.name.split('.').pop();
-          const filePath = `${currentUser.id}/${Math.random().toString(36).substring(2)}.${fileExt}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('curriculum_files')
-            .upload(filePath, cvFile);
-
-          if (uploadError) {
-            console.error("CV upload failed:", uploadError);
-            // We don't block registration success but warn user
-            // Or maybe we do?
-          } else {
-            const { data: publicUrlData } = supabase.storage
-              .from('curriculum_files')
-              .getPublicUrl(filePath);
-
-            // Update profile with CV URL
-            await supabase.from('candidate_profiles').update({
-              cv_url: publicUrlData.publicUrl
-            }).eq('id', currentUser.id);
-          }
-        }
+        // Store CV file info in sessionStorage to upload after email confirmation
+        sessionStorage.setItem('pendingCVUpload', 'true');
+        sessionStorage.setItem('cvFileName', cvFile.name);
       }
 
-      navigate("/login");
+      navigate("/email-confirmation");
     } catch (error: any) {
       console.error("Registration error:", error);
       setError(error?.message || "Si è verificato un errore durante la registrazione");

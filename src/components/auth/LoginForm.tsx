@@ -67,6 +67,8 @@ export default function LoginForm() {
 
       if (error?.message?.includes('Invalid login credentials')) {
         errorMessage = "Email o password non corretti. Controlla le credenziali e riprova.";
+      } else if (error?.message?.includes('Email not confirmed')) {
+        errorMessage = "Email non confermata. Per favore controlla la tua email e clicca sul link di conferma.";
       } else if (error?.message) {
         errorMessage = error.message;
       }

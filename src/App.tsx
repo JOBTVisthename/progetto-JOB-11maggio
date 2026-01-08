@@ -21,6 +21,8 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import CompanyDashboard from "./pages/CompanyDashboard";
 import CandidateDashboard from "./pages/CandidateDashboard";
+import EmailConfirmation from "./pages/EmailConfirmation";
+import AuthCallback from "./pages/AuthCallback";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { useAdminAuth } from "./hooks/useAdminAuth";
 import { Suspense, lazy } from "react";
@@ -66,6 +68,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/email-confirmation" element={<EmailConfirmation />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/for-candidates" element={<ForCandidates />} />
             <Route path="/for-companies" element={<ForCompanies />} />
             <Route path="/pricing-plans" element={<PricingPlans />} />

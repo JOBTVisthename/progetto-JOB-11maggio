@@ -57,7 +57,8 @@ export const useAuthService = () => {
         email,
         password,
         options: {
-          data: userData
+          data: userData,
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
 
