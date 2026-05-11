@@ -1,9 +1,10 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Star, ArrowRight, HelpCircle, Shield, Zap } from 'lucide-react';
-import { PRICING_PLANS, PlanId, redirectToCheckout, isTestMode } from '@/integrations/stripe/stripeService';
+import { Check, Star, ArrowRight, HelpCircle, Shield, Info } from 'lucide-react';
+import { PRICING_PLANS, PlanId, redirectToCheckout, isStripeConfigured } from '@/integrations/stripe/stripeService';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +16,37 @@ const PricingPlans: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = React.useState<PlanId | null>(null);
+  const [userType, setUserType] = React.useState<'candidate' | 'company' | null>(null);
+  const [checkingType, setCheckingType] = React.useState(true);
+
+  // Check user type on mount
+  React.useEffect(() => {
+    const checkUserType = async () => {
+      if (!user) {
+        setCheckingType(false);
+        return;
+      }
+
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', user.id)
+          .single();
+
+        if (!error && data) {
+          setUserType(data.user_type);
+        }
+      } catch (error) {
+        console.error('Error checking user type:', error);
+      } finally {
+        setCheckingType(false);
+      }
+    };
+
+    checkUserType();
+  }, [user]);
 
   const handlePlanSelect = async (planId: PlanId) => {
     if (!user) {
@@ -22,54 +54,62 @@ const PricingPlans: React.FC = () => {
       return;
     }
 
-    setLoading(planId);
-    
-    try {
-      const plan = PRICING_PLANS[planId];
-      
-      if (isTestMode()) {
-        // In test mode, simulate payment flow
-        const response = await fetch('/api/create-checkout-session', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            planId,
-            price: plan.price,
-            currency: plan.currency,
-            userEmail: user.email,
-            userId: user.id,
-            planName: plan.name
-          }),
-        });
+    // Check if user is a candidate
+    if (userType === 'candidate') {
+      toast({
+        title: "Aziende solo",
+        description: "Gli abbonamenti sono riservati alle aziende. I candidati possono utilizzare la piattaforma gratuitamente.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-        const data = await response.json();
-        
-        if (data.isMock) {
-          toast({
-            title: "Pagamento di test completato!",
-            description: `Abbonamento ${plan.name} attivato con successo in modalità di test.`,
-            variant: "default",
-          });
-          
-          // Redirect to profile with subscription tab
-          setTimeout(() => {
-            navigate('/profile?tab=subscription&success=true&mock=true');
-          }, 1500);
-        }
-      } else {
-        // In production, use real Stripe checkout
-        await redirectToCheckout(planId, user.email!, user.id);
+    // Check if Stripe is configured
+    if (!isStripeConfigured()) {
+      toast({
+        title: "Stripe non configurato",
+        description: "Il sistema di pagamento non è configurato. Contatta l'amministratore.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(planId);
+
+    try {
+      // Verify user profile exists before checkout
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, user_type')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        toast({
+          title: "Profilo non trovato",
+          description: "Il tuo profilo non è stato trovato. Prova a effettuare il logout e login novamente.",
+          variant: "destructive",
+        });
+        setLoading(null);
+        return;
       }
+
+      // Redirect to Stripe Checkout
+      await redirectToCheckout({
+        planId,
+        userId: user.id,
+        userEmail: user.email,
+        successUrl: `${window.location.origin}/profile?tab=subscription&success=true`,
+        cancelUrl: `${window.location.origin}/pricing-plans`,
+      });
     } catch (error) {
       console.error('Checkout error:', error);
       toast({
         title: "Errore nel checkout",
-        description: "Si è verificato un errore durante il processo di pagamento. Riprova più tardi.",
+        description: error instanceof Error ? error.message : "Si è verificato un errore durante il processo di pagamento.",
         variant: "destructive",
       });
-    } finally {
       setLoading(null);
     }
   };
@@ -77,11 +117,12 @@ const PricingPlans: React.FC = () => {
   const PlanCard = ({ planId, isPopular = false }: { planId: PlanId; isPopular?: boolean }) => {
     const plan = PRICING_PLANS[planId];
     const isLoading = loading === planId;
+    const isDisabled = userType === 'candidate' || checkingType;
 
     return (
       <Card className={`relative group transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 ${
-        isPopular 
-          ? 'border-jobtv-teal shadow-xl scale-105 bg-gradient-to-br from-white to-jobtv-teal/5' 
+        isPopular
+          ? 'border-jobtv-teal shadow-xl scale-105 bg-gradient-to-br from-white to-jobtv-teal/5'
           : 'border-border hover:border-jobtv-teal/50'
       }`}>
         {isPopular && (
@@ -92,13 +133,13 @@ const PricingPlans: React.FC = () => {
             </Badge>
           </div>
         )}
-        
+
         <CardHeader className="text-center pb-6">
           <CardTitle className="text-3xl font-bold gradient-text mb-2">{plan.name}</CardTitle>
           <CardDescription className="text-lg text-gray-600 mb-6">
             Piano perfetto per {plan.idealFor.toLowerCase()}
           </CardDescription>
-          
+
           <div className="mt-6 mb-8">
             <div className="flex items-baseline justify-center">
               <span className="text-5xl font-bold gradient-text">€{plan.price}</span>
@@ -111,7 +152,7 @@ const PricingPlans: React.FC = () => {
             )}
           </div>
         </CardHeader>
-        
+
         <CardContent className="pt-0">
           <ul className="space-y-4 mb-8">
             {plan.features.map((feature, index) => (
@@ -123,24 +164,29 @@ const PricingPlans: React.FC = () => {
               </li>
             ))}
           </ul>
-          
-          <Button 
+
+          <Button
             className={`w-full text-lg py-4 rounded-xl font-semibold transition-all duration-300 group ${
-              isPopular 
-                ? 'jobtv-button shadow-lg hover:shadow-xl' 
+              isPopular
+                ? 'jobtv-button shadow-lg hover:shadow-xl'
                 : 'border-2 border-jobtv-teal text-jobtv-teal hover:bg-jobtv-teal hover:text-white'
-            }`} 
+            }`}
             onClick={() => handlePlanSelect(planId)}
-            disabled={isLoading}
+            disabled={isLoading || isDisabled}
           >
             {isLoading ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                 Elaborazione...
               </>
+            ) : isDisabled && userType === 'candidate' ? (
+              <>
+                Aziende Solo
+                <Shield className="ml-2 h-5 w-5" />
+              </>
             ) : user ? (
               <>
-                {isTestMode() ? 'Test Pagamento' : 'Scegli Piano'}
+                Scegli Piano
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </>
             ) : (
@@ -150,14 +196,6 @@ const PricingPlans: React.FC = () => {
               </>
             )}
           </Button>
-          
-          {isTestMode() && (
-            <div className="mt-3 text-center">
-              <Badge variant="secondary" className="text-xs">
-                Modalità Test - Nessun addebito reale
-              </Badge>
-            </div>
-          )}
         </CardContent>
       </Card>
     );
@@ -166,25 +204,19 @@ const PricingPlans: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-gray-50/50 to-white">
       <Header />
-      
+
       <main className="section-padding">
         <div className="container container-padding">
           {/* Header Section */}
           <div className="text-center max-w-4xl mx-auto mb-16 animate-fade-in">
-            {isTestMode() && (
-              <div className="inline-flex items-center px-4 py-2 rounded-full bg-yellow-100 border border-yellow-300 text-yellow-800 text-sm font-medium mb-6">
-                <Zap className="w-4 h-4 mr-2" />
-                Modalità Sandbox - Pagamenti di Test
-              </div>
-            )}
             <h1 className="text-5xl md:text-6xl font-bold mb-6 gradient-text text-balance">
               Scegli il Piano Perfetto per Te
             </h1>
             <p className="text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto text-balance mb-8">
-              Tutti i piani includono accesso completo alla nostra piattaforma video e matching intelligente. 
+              Tutti i piani includono accesso completo alla nostra piattaforma video e matching intelligente.
               Nessun costo nascosto, annulla in qualsiasi momento.
             </p>
-            
+
             {/* Trust indicators */}
             <div className="flex flex-wrap justify-center gap-6 mb-8">
               <div className="flex items-center space-x-2 text-gray-600">
@@ -204,6 +236,31 @@ const PricingPlans: React.FC = () => {
 
           {/* Pricing Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto mb-16">
+            {/* Banner for candidates */}
+            {user && userType === 'candidate' && (
+              <div className="lg:col-span-3 mb-8">
+                <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
+                        <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Devi essere registrato come Azienda</h3>
+                        <p className="text-blue-700 dark:text-blue-300 text-sm mb-3">
+                          Per abbonarsi, devi avere un profilo aziendale. Se ti sei registrato come candidato, registrati nuovamente come azienda.
+                        </p>
+                        <Link to="/register?type=company">
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                            Vai alla Registrazione Azienda
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
             <PlanCard planId="starter" />
             <PlanCard planId="builder" isPopular={true} />
             <PlanCard planId="hero" />
@@ -215,7 +272,7 @@ const PricingPlans: React.FC = () => {
               <h2 className="text-3xl font-bold mb-4 gradient-text">Domande Frequenti</h2>
               <p className="text-gray-600 text-lg">Tutto quello che devi sapere sui nostri piani</p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
                 {
@@ -255,7 +312,7 @@ const PricingPlans: React.FC = () => {
                     Il nostro team di esperti è qui per aiutarti a scegliere il piano migliore per le tue esigenze specifiche.
                   </p>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                   <Button size="lg" className="jobtv-button px-8 py-4">
                     <HelpCircle className="mr-2 h-5 w-5" />
@@ -266,7 +323,7 @@ const PricingPlans: React.FC = () => {
                     Scopri le Funzionalità
                   </Button>
                 </div>
-                
+
                 <div className="mt-8 flex items-center justify-center space-x-6 text-gray-600">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -286,7 +343,7 @@ const PricingPlans: React.FC = () => {
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

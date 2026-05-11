@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +8,7 @@ import { Send, Wifi, WifiOff, AlertCircle } from "lucide-react";
 import { getInitials } from "../matches/utils/matchUtils";
 import { formatDistanceToNow } from "date-fns";
 import { it } from "date-fns/locale";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -153,17 +152,37 @@ export default function MessageList({ matchId, otherUser, userType }: MessageLis
     const msgToSend = newMessage.trim();
     setNewMessage(""); // Optimistic clear
 
+    // Optimistic update - add message immediately to UI
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage: Message = {
+      id: tempId,
+      job_matching_id: matchId,
+      sender_id: user.id,
+      message: msgToSend,
+      is_read: false,
+      created_at: new Date().toISOString()
+    };
+
+    setMessages(prev => [...prev, optimisticMessage]);
+
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("messages")
         .insert({
           job_matching_id: matchId,
           sender_id: user.id,
           message: msgToSend,
           is_read: false
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Replace temporary message with real one from server
+      setMessages(prev =>
+        prev.map(msg => msg.id === tempId ? data : msg)
+      );
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast({
@@ -171,7 +190,9 @@ export default function MessageList({ matchId, otherUser, userType }: MessageLis
         description: "Impossibile inviare il messaggio",
         variant: "destructive",
       });
-      setNewMessage(msgToSend); // Restore if failed
+      setNewMessage(msgToSend); // Restore input if failed
+      // Remove temporary message
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
     }
   };
 

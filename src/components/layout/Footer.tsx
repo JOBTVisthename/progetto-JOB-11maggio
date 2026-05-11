@@ -87,30 +87,30 @@ export default function Footer() {
           <div className="space-y-4">
             <h3 className="font-semibold text-lg text-gray-900 mb-4">Link Utili</h3>
             <nav className="flex flex-col space-y-3">
-              <a 
-                href="https://www.leark.it/termini-e-condizioni" 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <Link
+                to="/terms"
                 className="text-gray-600 hover:text-jobtv-teal transition-colors duration-300 font-medium"
               >
                 Termini e Condizioni
-              </a>
-              <a 
-                href="https://www.leark.it/privacy" 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              </Link>
+              <Link
+                to="/privacy"
                 className="text-gray-600 hover:text-jobtv-teal transition-colors duration-300 font-medium"
               >
                 Privacy Policy
-              </a>
-              <a 
-                href="https://www.leark.it/cookie" 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              </Link>
+              <Link
+                to="/cookie"
                 className="text-gray-600 hover:text-jobtv-teal transition-colors duration-300 font-medium"
               >
                 Cookie Policy
-              </a>
+              </Link>
+              <Link
+                to="/ai-transparency"
+                className="text-gray-600 hover:text-jobtv-teal transition-colors duration-300 font-medium"
+              >
+                Informativa AI
+              </Link>
             </nav>
           </div>
 

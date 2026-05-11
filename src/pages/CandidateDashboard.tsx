@@ -327,7 +327,7 @@ const CandidateDashboard = () => {
                                 </div>
 
                                 <div className="pt-4 border-t border-gray-100 space-y-2">
-                                    <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/profile')}>
+                                    <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/candidate/profile')}>
                                         <Briefcase className="h-4 w-4 mr-2" /> Modifica Profilo
                                     </Button>
                                     <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/video-interview')}>

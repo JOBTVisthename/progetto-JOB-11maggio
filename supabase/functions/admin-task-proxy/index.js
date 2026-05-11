@@ -32,7 +32,7 @@ serve(async (req) => {
         break;
 
       case 'update_subscription':
-        result = await updateSubscription(payload.userId, payload.planType);
+        result = await updateSubscription(payload.userId, payload.planType, payload.action);
         break;
 
       default:
@@ -73,41 +73,60 @@ serve(async (req) => {
 async function getUsers() {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
-  // Fetch all users with their profiles and subscriptions
-  const profilesResponse = await fetch(
-    `${supabaseUrl}/rest/v1/profiles?select=id,email,full_name,user_type,role,created_at,candidate_profiles(id,first_name,last_name,profile_image_url,desired_job_title),company_profiles(id,company_name,profile_image_url),subscriptions(id,plan_type,status,created_at)&order=created_at.desc`,
-    {
-      headers: {
-        'apikey': supabaseServiceKey,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
 
-  if (!profilesResponse.ok) {
-    throw new Error(`Failed to fetch profiles: ${profilesResponse.statusText}`);
+  const allProfiles = [];
+  let offset = 0;
+  const limit = 1000;
+  let hasMore = true;
+
+  // Fetch all users with pagination
+  while (hasMore) {
+    const profilesResponse = await fetch(
+      `${supabaseUrl}/rest/v1/profiles?select=id,email,full_name,user_type,role,created_at,stripe_customer_id,candidate_profiles(id,first_name,last_name,profile_image_url,desired_job_title),company_profiles(id,company_name,profile_image_url),subscriptions(id,plan_type,status,created_at,stripe_customer_id,stripe_subscription_id,stripe_price_id,current_period_start,current_period_end,trial_end,cancel_at_period_end)&order=created_at.desc&limit=${limit}&offset=${offset}`,
+      {
+        headers: {
+          'apikey': supabaseServiceKey,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!profilesResponse.ok) {
+      throw new Error(`Failed to fetch profiles: ${profilesResponse.statusText}`);
+    }
+
+    const profiles = await profilesResponse.json();
+
+    if (profiles.length === 0) {
+      hasMore = false;
+    } else {
+      allProfiles.push(...profiles);
+      offset += limit;
+
+      // If we got less than the limit, we've reached the end
+      if (profiles.length < limit) {
+        hasMore = false;
+      }
+    }
   }
 
-  const profiles = await profilesResponse.json();
-
   // Group subscriptions by user
-  const usersWithSubscriptions = profiles.map((profile) => {
+  const usersWithSubscriptions = allProfiles.map((profile) => {
     const userSubscriptions = profile.subscriptions || [];
-    
+
     return {
       ...profile,
       subscriptions: userSubscriptions.length > 0 ? userSubscriptions : null
     };
   });
 
-  return { users: usersWithSubscriptions };
+  return { users: usersWithSubscriptions, total: usersWithSubscriptions.length };
 }
 
 async function deleteUser(userId) {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
+
   // Delete user's subscriptions
   const subResponse = await fetch(
     `${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${userId}`,
@@ -178,7 +197,7 @@ async function deleteUser(userId) {
 async function updateRole(userId, newRole) {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
+
   const response = await fetch(
     `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}`,
     {
@@ -198,11 +217,20 @@ async function updateRole(userId, newRole) {
   return { success: true, message: 'Role updated successfully', role: newRole };
 }
 
-async function updateSubscription(userId, planType) {
+async function updateSubscription(userId, planType, action = 'upgrade') {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
-  // Check if user already has a subscription
+
+  // Handle different actions
+  if (action === 'cancel') {
+    return await cancelSubscription(userId);
+  }
+
+  if (action === 'reactivate') {
+    return await reactivateSubscription(userId);
+  }
+
+  // For upgrade/downgrade, update the plan type
   const checkResponse = await fetch(
     `${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${userId}&select=*`,
     {
@@ -267,7 +295,7 @@ async function updateSubscription(userId, planType) {
           current_period_start: currentPeriodStart,
           current_period_end: currentPeriodEnd,
           cancel_at_period_end: false,
-          stripe_customer_id: 'admin-manual', // Flag for admin-managed subscriptions
+          stripe_customer_id: 'admin-manual',
           stripe_subscription_id: `admin-${planType}-${Date.now()}`,
           stripe_price_id: `price-${planType}`,
           created_at: now.toISOString(),
@@ -283,4 +311,64 @@ async function updateSubscription(userId, planType) {
     const newSub = await insertResponse.json();
     return { success: true, message: 'Subscription created successfully', planType, newSub };
   }
+}
+
+async function cancelSubscription(userId) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${userId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'apikey': supabaseServiceKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        status: 'canceled',
+        cancel_at_period_end: true,
+        updated_at: new Date().toISOString()
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to cancel subscription: ${response.statusText}`);
+  }
+
+  return { success: true, message: 'Subscription canceled successfully' };
+}
+
+async function reactivateSubscription(userId) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+  const now = new Date();
+  const currentPeriodStart = now.toISOString();
+  const currentPeriodEnd = new Date(now.setMonth(now.getMonth() + 1)).toISOString();
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${userId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'apikey': supabaseServiceKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        status: 'active',
+        cancel_at_period_end: false,
+        current_period_start: currentPeriodStart,
+        current_period_end: currentPeriodEnd,
+        updated_at: now.toISOString()
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to reactivate subscription: ${response.statusText}`);
+  }
+
+  return { success: true, message: 'Subscription reactivated successfully' };
 }

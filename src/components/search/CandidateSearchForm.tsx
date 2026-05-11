@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Video, Filter, Briefcase, MapPin, Clock } from "lucide-react";
+import { Search, Video, Filter, Briefcase, MapPin, Clock, GraduationCap, Code, Globe, Euro } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const searchFormSchema = z.object({
@@ -18,6 +18,11 @@ const searchFormSchema = z.object({
   hasVideo: z.boolean().optional(),
   experience: z.string().optional(),
   contractType: z.string().optional(),
+  educationLevel: z.string().optional(),
+  skills: z.string().optional(),
+  languages: z.string().optional(),
+  salaryMin: z.string().optional(),
+  salaryMax: z.string().optional(),
 });
 
 type SearchFormValues = z.infer<typeof searchFormSchema>;
@@ -39,19 +44,44 @@ export default function CandidateSearchForm({ onSearch }: CandidateSearchFormPro
       hasVideo: false,
       experience: "any",
       contractType: "any",
+      educationLevel: "any",
+      skills: "",
+      languages: "",
+      salaryMin: "",
+      salaryMax: "",
     }
   });
 
   const handleSubmit = (values: SearchFormValues) => {
     console.log("Search values:", values);
-    
+
+    // Convert comma-separated strings to arrays
+    const searchFilters: any = {
+      jobTitle: values.jobTitle || undefined,
+      location: values.location || undefined,
+      availability: values.availability !== "any" ? values.availability : undefined,
+      hasVideo: values.hasVideo || undefined,
+      experience: values.experience !== "any" ? values.experience : undefined,
+      contractType: values.contractType !== "any" ? values.contractType : undefined,
+      educationLevel: values.educationLevel !== "any" ? values.educationLevel : undefined,
+      skills: values.skills ? values.skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
+      languages: values.languages ? values.languages.split(',').map(l => l.trim()).filter(l => l) : undefined,
+      salaryMin: values.salaryMin ? parseInt(values.salaryMin) : undefined,
+      salaryMax: values.salaryMax ? parseInt(values.salaryMax) : undefined,
+    };
+
+    // Remove undefined values
+    Object.keys(searchFilters).forEach(key => {
+      if (searchFilters[key] === undefined) delete searchFilters[key];
+    });
+
     toast({
       title: "Ricerca avviata",
       description: "Cercando candidati corrispondenti...",
       variant: "default",
     });
-    
-    onSearch(values);
+
+    onSearch(searchFilters);
   };
 
   const clearAllFilters = () => {
@@ -152,6 +182,7 @@ export default function CandidateSearchForm({ onSearch }: CandidateSearchFormPro
                         <SelectItem value="weekend">Weekend</SelectItem>
                         <SelectItem value="shift">Turni</SelectItem>
                         <SelectItem value="relocate">Trasferta</SelectItem>
+                        <SelectItem value="remote">Remoto</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -198,7 +229,7 @@ export default function CandidateSearchForm({ onSearch }: CandidateSearchFormPro
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="contractType"
@@ -223,7 +254,81 @@ export default function CandidateSearchForm({ onSearch }: CandidateSearchFormPro
                     </FormItem>
                   )}
                 />
-                
+
+                <FormField
+                  control={form.control}
+                  name="educationLevel"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="flex items-center text-sm font-semibold text-gray-700">
+                        <GraduationCap className="h-4 w-4 mr-2 text-jobtv-teal" />
+                        Titolo di Studio
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-12 border-2 border-gray-200 rounded-xl focus:border-jobtv-teal focus:ring-2 focus:ring-jobtv-teal/20 transition-all duration-200 text-base">
+                            <SelectValue placeholder="Seleziona titolo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="any">Qualsiasi</SelectItem>
+                          <SelectItem value="none">Nessuno</SelectItem>
+                          <SelectItem value="high-school">Diploma</SelectItem>
+                          <SelectItem value="bachelor">Laurea Triennale</SelectItem>
+                          <SelectItem value="master">Laurea Magistrale</SelectItem>
+                          <SelectItem value="phd">Dottorato</SelectItem>
+                          <SelectItem value="other">Altro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="skills"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="flex items-center text-sm font-semibold text-gray-700">
+                        <Code className="h-4 w-4 mr-2 text-jobtv-teal" />
+                        Competenze
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Es. JavaScript, React, Node..."
+                          {...field}
+                          className="h-12 border-2 border-gray-200 rounded-xl focus:border-jobtv-teal focus:ring-2 focus:ring-jobtv-teal/20 transition-all duration-200 text-base"
+                        />
+                      </FormControl>
+                      <p className="text-xs text-gray-500">Separa le competenze con virgole</p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="languages"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="flex items-center text-sm font-semibold text-gray-700">
+                        <Globe className="h-4 w-4 mr-2 text-jobtv-teal" />
+                        Lingue
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Es. Italiano, Inglese..."
+                          {...field}
+                          className="h-12 border-2 border-gray-200 rounded-xl focus:border-jobtv-teal focus:ring-2 focus:ring-jobtv-teal/20 transition-all duration-200 text-base"
+                        />
+                      </FormControl>
+                      <p className="text-xs text-gray-500">Separa le lingue con virgole</p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="hasVideo"
@@ -238,14 +343,58 @@ export default function CandidateSearchForm({ onSearch }: CandidateSearchFormPro
                             className="h-5 w-5 text-jobtv-teal focus:ring-jobtv-teal/20"
                           />
                         </FormControl>
-                        <label 
-                          htmlFor="hasVideo" 
+                        <label
+                          htmlFor="hasVideo"
                           className="ml-3 text-sm text-gray-700 cursor-pointer flex items-center"
                         >
                           <Video className="h-4 w-4 mr-2 text-jobtv-teal" />
                           Solo candidati con video
                         </label>
                       </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="salaryMin"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="flex items-center text-sm font-semibold text-gray-700">
+                        <Euro className="h-4 w-4 mr-2 text-jobtv-teal" />
+                        Stipendio Minimo (€/anno)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Es. 25000"
+                          {...field}
+                          className="h-12 border-2 border-gray-200 rounded-xl focus:border-jobtv-teal focus:ring-2 focus:ring-jobtv-teal/20 transition-all duration-200 text-base"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="salaryMax"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="flex items-center text-sm font-semibold text-gray-700">
+                        <Euro className="h-4 w-4 mr-2 text-jobtv-teal" />
+                        Stipendio Massimo (€/anno)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Es. 60000"
+                          {...field}
+                          className="h-12 border-2 border-gray-200 rounded-xl focus:border-jobtv-teal focus:ring-2 focus:ring-jobtv-teal/20 transition-all duration-200 text-base"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

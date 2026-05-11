@@ -8,6 +8,7 @@ import CandidateProfileModal from "./CandidateProfileModal";
 import PaywallModal from "@/components/payment/PaywallModal";
 import { useAuth } from "@/context/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useCredits } from "@/hooks/useCredits";
 
 interface CandidateSearchResultsProps {
   candidates: any[];
@@ -33,18 +34,61 @@ export default function CandidateSearchResults({
   onPageChange
 }: CandidateSearchResultsProps) {
   const { user } = useAuth();
-  const { hasActiveSubscription, canAccessPremium, loading: subscriptionLoading } = useSubscription();
+  const { hasActiveSubscription, canAccessPremium } = useSubscription();
+  const { isCandidateUnlocked, unlockCandidate, getCreditsInfo } = useCredits();
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [selectedCandidateForPaywall, setSelectedCandidateForPaywall] = useState<any>(null);
+  const [unlockingCandidateId, setUnlockingCandidateId] = useState<string | null>(null);
 
   const canViewFullProfiles = canAccessPremium();
 
-  const handleViewProfile = (candidateId: string) => {
-    // Allow all companies to view full candidate profiles
-    setSelectedCandidateId(candidateId);
-    setIsProfileModalOpen(true);
+  const handleViewProfile = async (candidateId: string) => {
+    // Check if candidate is already unlocked
+    if (isCandidateUnlocked(candidateId)) {
+      setSelectedCandidateId(candidateId);
+      setIsProfileModalOpen(true);
+      return;
+    }
+
+    // Check if user has unlimited access (hero plan)
+    const creditsInfo = getCreditsInfo();
+    if (creditsInfo?.isUnlimited) {
+      setSelectedCandidateId(candidateId);
+      setIsProfileModalOpen(true);
+      return;
+    }
+
+    // Check if has credits remaining
+    if (!creditsInfo?.hasSubscription) {
+      // No subscription - show paywall
+      setSelectedCandidateForPaywall(candidates.find(c => c.id === candidateId) || null);
+      setIsPaywallOpen(true);
+      return;
+    }
+
+    // Has subscription but need to unlock candidate
+    setSelectedCandidateForPaywall(candidates.find(c => c.id === candidateId) || null);
+    setIsPaywallOpen(true);
+  };
+
+  const handleUnlockCandidate = async (candidateId: string) => {
+    setUnlockingCandidateId(candidateId);
+    try {
+      const result = await unlockCandidate(candidateId);
+      if (result.success) {
+        // Close paywall and open profile modal
+        setIsPaywallOpen(false);
+        setSelectedCandidateId(candidateId);
+        setIsProfileModalOpen(true);
+      } else {
+        // Show error or handle insufficient credits
+        console.error('Failed to unlock candidate:', result.error);
+      }
+    } finally {
+      setUnlockingCandidateId(null);
+    }
   };
 
   const getInitials = (firstName?: string, lastName?: string) => {
@@ -90,8 +134,18 @@ export default function CandidateSearchResults({
     <>
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {candidates.map((candidate) => (
-            <Card key={candidate.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 border-gray-100 group flex flex-col h-full bg-white">
+          {candidates.map((candidate) => {
+            const isUnlocked = isCandidateUnlocked(candidate.id);
+            const creditsInfo = getCreditsInfo();
+            const isBlurred = user?.user_type === 'company' && !creditsInfo?.isUnlimited && !isUnlocked;
+
+            return (
+            <Card key={candidate.id} className={`overflow-hidden hover:shadow-lg transition-all duration-300 border-gray-100 group flex flex-col h-full bg-white ${isBlurred ? 'relative' : ''}`}>
+              {/* Overlay for blurred cards */}
+              {isBlurred && (
+                <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 rounded-lg" />
+              )}
+
               {/* Header with Background/Avatar */}
               <div className="relative h-24 bg-gradient-to-r from-jobtv-teal/10 to-jobtv-blue/10">
                 {candidate.video_interviews && candidate.video_interviews.length > 0 && (
@@ -103,9 +157,14 @@ export default function CandidateSearchResults({
               </div>
 
               <div className="px-6 relative flex-grow">
-                <div className="absolute -top-12 left-6 border-4 border-white rounded-full shadow-md bg-white">
+                <div className={`absolute -top-12 left-6 border-4 border-white rounded-full shadow-md bg-white ${isBlurred ? 'overflow-hidden' : ''}`}>
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={candidate.profile_image_url} alt={`${candidate.first_name} ${candidate.last_name}`} className="object-cover" />
+                    <AvatarImage
+                      src={candidate.profile_image_url}
+                      alt={`${candidate.first_name} ${candidate.last_name}`}
+                      className="object-cover"
+                      style={isBlurred ? { filter: 'blur(8px)' } : {}}
+                    />
                     <AvatarFallback className="text-xl bg-gray-50 text-gray-400">
                       {getInitials(candidate.first_name, candidate.last_name)}
                     </AvatarFallback>
@@ -114,13 +173,23 @@ export default function CandidateSearchResults({
 
                 <div className="pt-10 mb-4">
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="relative">
+                      {isBlurred && <div className="absolute inset-0 backdrop-blur-sm bg-white/30 rounded z-20" />}
                       <h3 className="font-bold text-lg text-gray-900 group-hover:text-jobtv-blue transition-colors">
-                        {candidate.first_name} {candidate.last_name}
+                        {isBlurred
+                          ? `${candidate.first_name?.charAt(0) || ''}... ${candidate.last_name?.charAt(0) || ''}...`
+                          : `${candidate.first_name} ${candidate.last_name}`
+                        }
                       </h3>
                       <p className="text-jobtv-teal font-medium text-sm">
                         {candidate.desired_job_title || "Candidato"}
                       </p>
+                      {isBlurred && (
+                        <div className="flex items-center gap-1 mt-1 text-orange-600">
+                          <Lock className="h-3 w-3" />
+                          <span className="text-xs font-medium">Sblocca per vedere</span>
+                        </div>
+                      )}
                     </div>
                     {/* Placeholder for Match Score if available */}
                   </div>
@@ -160,14 +229,24 @@ export default function CandidateSearchResults({
                 </div>
               </div>
 
-              <CardFooter className="px-6 py-4 border-t border-gray-50 bg-gray-50/30 flex gap-3 mt-auto">
+              <CardFooter className="px-6 py-4 border-t border-gray-50 bg-gray-50/30 flex gap-3 mt-auto relative z-20">
                 <Button
                   variant="outline"
                   className="flex-1 hover:border-jobtv-blue hover:text-jobtv-blue bg-white"
                   onClick={() => handleViewProfile(candidate.id)}
+                  disabled={unlockingCandidateId === candidate.id}
                 >
-                  <Eye className="mr-2 h-4 w-4" />
-                  Visualizza
+                  {isBlurred ? (
+                    <>
+                      <Lock className="mr-2 h-4 w-4" />
+                      Sblocca (1 credito)
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="mr-2 h-4 w-4" />
+                      Visualizza
+                    </>
+                  )}
                 </Button>
                 <Button
                   variant={likedCandidates.includes(candidate.id) ? "default" : "secondary"}
@@ -178,7 +257,8 @@ export default function CandidateSearchResults({
                 </Button>
               </CardFooter>
             </Card>
-          ))}
+          );
+          })}
         </div>
       </div>
 
@@ -242,8 +322,11 @@ export default function CandidateSearchResults({
       <PaywallModal
         isOpen={isPaywallOpen}
         onClose={() => setIsPaywallOpen(false)}
+        candidateId={selectedCandidateForPaywall?.id}
         candidateName={selectedCandidateForPaywall ? `${selectedCandidateForPaywall.first_name} ${selectedCandidateForPaywall.last_name}` : undefined}
         previewData={selectedCandidateForPaywall ? getCandidatePreview(selectedCandidateForPaywall) : undefined}
+        onUnlock={selectedCandidateForPaywall?.id ? () => handleUnlockCandidate(selectedCandidateForPaywall.id) : undefined}
+        isUnlocking={unlockingCandidateId !== null}
       />
     </>
   );

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/layout/Logo";
 import { useAuth } from "@/context/AuthContext";
+import CreditsIndicator from "@/components/credits/CreditsIndicator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -97,60 +98,90 @@ export default function Header() {
   const [userType, setUserType] = useState<string | null>(null);
 
   useEffect(() => {
-    const getUserProfile = async () => {
+    const getUserProfile = async (retries = 3) => {
       if (!user) return;
 
-      try {
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("user_type")
-          .eq("id", user.id)
-          .single();
+      for (let attempt = 0; attempt < retries; attempt++) {
+        try {
+          const { data: profile, error } = await supabase
+            .from("profiles")
+            .select("user_type")
+            .eq("id", user.id)
+            .single();
 
-        if (error) {
-          console.error("Error fetching profile:", error);
+          if (error) {
+            // If profile not found yet and we have retries left, wait and try again
+            if (attempt < retries - 1 && (error.code === 'PGRST116' || error.code === '406')) {
+              console.log(`Profile not ready, retrying... (${attempt + 1}/${retries})`);
+              await new Promise(resolve => setTimeout(resolve, 500));
+              continue;
+            }
+            console.error("Error fetching profile:", error);
+            return;
+          }
+
+          setUserType(profile.user_type);
+
+          if (profile.user_type === "candidate") {
+            const { data, error: candidateError } = await supabase
+              .from("candidate_profiles")
+              .select("first_name, last_name")
+              .eq("id", user.id)
+              .single();
+
+            if (candidateError) {
+              // If candidate profile not found yet and we have retries left, wait and try again
+              if (attempt < retries - 1 && (candidateError.code === 'PGRST116' || candidateError.code === '406')) {
+                console.log(`Candidate profile not ready, retrying... (${attempt + 1}/${retries})`);
+                await new Promise(resolve => setTimeout(resolve, 500));
+                continue;
+              }
+              console.error("Error fetching candidate profile:", candidateError);
+              // Fallback to email initials
+              setUserInitials(user.email?.substring(0, 2).toUpperCase() ?? "??");
+              return;
+            }
+
+            if (data?.first_name && data?.last_name) {
+              setUserInitials(`${data.first_name[0]}${data.last_name[0]}`.toUpperCase());
+            } else {
+              setUserInitials(user.email?.substring(0, 2).toUpperCase() ?? "??");
+            }
+          } else if (profile.user_type === "company") {
+            const { data, error: companyError } = await supabase
+              .from("company_profiles")
+              .select("company_name")
+              .eq("id", user.id)
+              .single();
+
+            if (companyError) {
+              // If company profile not found yet and we have retries left, wait and try again
+              if (attempt < retries - 1 && (companyError.code === 'PGRST116' || companyError.code === '406')) {
+                console.log(`Company profile not ready, retrying... (${attempt + 1}/${retries})`);
+                await new Promise(resolve => setTimeout(resolve, 500));
+                continue;
+              }
+              console.error("Error fetching company profile:", companyError);
+              // Fallback to email initials
+              setUserInitials(user.email?.substring(0, 2).toUpperCase() ?? "??");
+              return;
+            }
+
+            if (data?.company_name) {
+              setUserInitials(data.company_name.substring(0, 2).toUpperCase());
+            } else {
+              setUserInitials(user.email?.substring(0, 2).toUpperCase() ?? "??");
+            }
+          }
+          // Success! Break out of retry loop
           return;
-        }
-
-        setUserType(profile.user_type);
-
-        if (profile.user_type === "candidate") {
-          const { data, error: candidateError } = await supabase
-            .from("candidate_profiles")
-            .select("first_name, last_name")
-            .eq("id", user.id)
-            .single();
-
-          if (candidateError) {
-            console.error("Error fetching candidate profile:", candidateError);
-            return;
-          }
-
-          if (data?.first_name && data?.last_name) {
-            setUserInitials(`${data.first_name[0]}${data.last_name[0]}`.toUpperCase());
-          } else {
-            setUserInitials(user.email?.substring(0, 2).toUpperCase() ?? "??");
-          }
-        } else if (profile.user_type === "company") {
-          const { data, error: companyError } = await supabase
-            .from("company_profiles")
-            .select("company_name")
-            .eq("id", user.id)
-            .single();
-
-          if (companyError) {
-            console.error("Error fetching company profile:", companyError);
-            return;
-          }
-
-          if (data?.company_name) {
-            setUserInitials(data.company_name.substring(0, 2).toUpperCase());
-          } else {
-            setUserInitials(user.email?.substring(0, 2).toUpperCase() ?? "??");
+        } catch (error) {
+          console.error("Error in getUserProfile:", error);
+          if (attempt < retries - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            continue;
           }
         }
-      } catch (error) {
-        console.error("Error in getUserProfile:", error);
       }
     };
 
@@ -183,6 +214,11 @@ export default function Header() {
           <Link to="/" className="flex items-center transition-all duration-300 hover:scale-105">
             <Logo />
           </Link>
+
+          {/* Credits Indicator - Only for logged in companies */}
+          {user && userType === 'company' && (
+            <CreditsIndicator className="ml-6" />
+          )}
 
           {/* Public Navigation - Not Logged In */}
           {!user && (

@@ -9,14 +9,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Star, Check, Crown } from 'lucide-react';
-import { PRICING_PLANS, PlanId, mockCheckout } from '@/integrations/stripe/stripeService';
+import { Lock, Star, Check, Crown, Target } from 'lucide-react';
+import { PRICING_PLANS, PlanId, redirectToCheckout, isStripeConfigured } from '@/integrations/stripe/stripeService';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useCredits } from '@/hooks/useCredits';
+import { useToast } from '@/hooks/use-toast';
 
 interface PaywallModalProps {
   isOpen: boolean;
   onClose: () => void;
+  candidateId?: string;
   candidateName?: string;
   previewData?: {
     name: string;
@@ -24,16 +27,29 @@ interface PaywallModalProps {
     location?: string;
     experience?: string;
   };
+  onUnlock?: () => void;
+  isUnlocking?: boolean;
 }
 
-const PaywallModal: React.FC<PaywallModalProps> = ({ 
-  isOpen, 
-  onClose, 
+const PaywallModal: React.FC<PaywallModalProps> = ({
+  isOpen,
+  onClose,
+  candidateId,
   candidateName,
-  previewData 
+  previewData,
+  onUnlock,
+  isUnlocking = false
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { getCreditsInfo } = useCredits();
+  const { toast } = useToast();
+
+  const creditsInfo = getCreditsInfo();
+  const hasSubscription = creditsInfo?.hasSubscription;
+  const remainingCredits = creditsInfo?.remaining ?? 0;
+  const isUnlimited = creditsInfo?.isUnlimited;
+  const planType = creditsInfo?.planType;
 
   const handlePlanSelect = async (planId: PlanId) => {
     if (!user) {
@@ -41,12 +57,33 @@ const PaywallModal: React.FC<PaywallModalProps> = ({
       return;
     }
 
+    // Check if Stripe is configured
+    if (!isStripeConfigured()) {
+      toast({
+        title: "Stripe non configurato",
+        description: "Il sistema di pagamento non è configurato.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      await mockCheckout(planId);
+      // Close modal and redirect to Stripe Checkout
       onClose();
-      navigate('/pricing-plans');
+      await redirectToCheckout({
+        planId,
+        userId: user.id,
+        userEmail: user.email,
+        successUrl: `${window.location.origin}/profile?tab=subscription&success=true`,
+        cancelUrl: `${window.location.origin}/pricing-plans`,
+      });
     } catch (error) {
       console.error('Checkout error:', error);
+      toast({
+        title: "Errore nel checkout",
+        description: error instanceof Error ? error.message : "Si è verificato un errore.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -134,6 +171,42 @@ const PaywallModal: React.FC<PaywallModalProps> = ({
             <p className="text-xs text-muted-foreground mt-2">
               Attiva un abbonamento per vedere contatti, curriculum video completo, e molto altro...
             </p>
+          </div>
+        )}
+
+        {/* Credits indicator and unlock option for users with subscription */}
+        {hasSubscription && (
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1 flex items-center gap-2">
+                  <Target className="w-4 h-4" />
+                  {isUnlimited ? 'Piano Illimitato' : `Crediti Rimanenti: ${remainingCredits}`}
+                </h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  {isUnlimited
+                    ? 'Con il piano Hero hai accesso illimitato ai candidati'
+                    : remainingCredits > 0
+                      ? `Sblocca questo candidato utilizzando 1 credito`
+                      : 'Limite mensile raggiunto - Effettua l\'upgrade del piano'
+                  }
+                </p>
+              </div>
+              {onUnlock && remainingCredits > 0 && (
+                <Button
+                  onClick={onUnlock}
+                  disabled={isUnlocking}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isUnlocking ? 'Sblocco in corso...' : 'Sblocca (1 credito)'}
+                </Button>
+              )}
+            </div>
+            {planType && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                Piano attuale: <Badge variant="outline" className="text-xs ml-1">{planType.toUpperCase()}</Badge>
+              </p>
+            )}
           </div>
         )}
 

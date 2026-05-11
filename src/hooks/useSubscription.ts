@@ -122,10 +122,38 @@ export const useSubscription = () => {
   };
 
   // Check if user can access premium features
-  // Companies can always access candidate profiles (no paywall)
+  // Returns false if no active subscription (paywall enabled)
   const canAccessPremium = () => {
-    // Companies can always view candidate profiles
-    return true;
+    return hasActiveSubscription();
+  };
+
+  // Get remaining credits for candidate views
+  const getCreditsRemaining = async (): Promise<{ remaining: number | null; isUnlimited: boolean; viewed: number } | null> => {
+    if (!subscription) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('subscription_usage')
+        .select('profiles_viewed, profiles_remaining, plan_type')
+        .eq('subscription_id', subscription.id)
+        .order('period_start', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) return null;
+
+      const isUnlimited = data.profiles_remaining === null;
+      return {
+        remaining: data.profiles_remaining,
+        isUnlimited,
+        viewed: data.profiles_viewed || 0
+      };
+    } catch (err) {
+      console.error('Error fetching credits remaining:', err);
+      return null;
+    }
   };
 
   // Check if user is on trial
@@ -161,6 +189,7 @@ export const useSubscription = () => {
     hasActiveSubscription,
     getCurrentPlan,
     canAccessPremium,
+    getCreditsRemaining,
     isOnTrial,
     getDaysRemaining,
     refetch: fetchSubscription,

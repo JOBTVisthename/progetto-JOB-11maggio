@@ -6,7 +6,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, MapPin, Briefcase, Calendar, ArrowUpRight, Video } from "lucide-react";
+import { Loader2, MapPin, Briefcase, Calendar, ArrowUpRight, Video, Lock, Target } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useCredits } from "@/hooks/useCredits";
+import PaywallModal from "@/components/payment/PaywallModal";
 
 interface CandidateProfileModalProps {
   candidateId: string | null;
@@ -15,15 +18,71 @@ interface CandidateProfileModalProps {
 }
 
 export default function CandidateProfileModal({ candidateId, isOpen, onClose }: CandidateProfileModalProps) {
+  const { user } = useAuth();
+  const { isCandidateUnlocked, unlockCandidate, getCreditsInfo } = useCredits();
   const [candidate, setCandidate] = useState<any>(null);
   const [interviews, setInterviews] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isPaywallOpen, setIsPaywallOpen] = useState<boolean>(false);
+  const [isUnlocking, setIsUnlocking] = useState<boolean>(false);
+  const [canView, setCanView] = useState<boolean>(false);
 
   useEffect(() => {
     if (candidateId && isOpen) {
-      fetchCandidateData();
+      checkAccessAndFetch();
     }
   }, [candidateId, isOpen]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setCanView(false);
+      setIsPaywallOpen(false);
+      setCandidate(null);
+      setInterviews([]);
+      setLoading(true);
+    }
+  }, [isOpen]);
+
+  const checkAccessAndFetch = async () => {
+    if (!candidateId) return;
+
+    const creditsInfo = getCreditsInfo();
+    const isUnlocked = isCandidateUnlocked(candidateId);
+    const isUnlimited = creditsInfo?.isUnlimited;
+
+    // Check if user can view (unlimited or already unlocked)
+    if (isUnlimited || isUnlocked) {
+      setCanView(true);
+      fetchCandidateData();
+    } else if (!creditsInfo?.hasSubscription) {
+      // No subscription - show paywall
+      setCanView(false);
+      setIsPaywallOpen(true);
+    } else {
+      // Has subscription but candidate not unlocked - show unlock option
+      setCanView(false);
+      setIsPaywallOpen(true);
+    }
+  };
+
+  const handleUnlock = async () => {
+    if (!candidateId) return;
+
+    setIsUnlocking(true);
+    try {
+      const result = await unlockCandidate(candidateId);
+      if (result.success) {
+        setCanView(true);
+        setIsPaywallOpen(false);
+        fetchCandidateData();
+      } else {
+        console.error('Failed to unlock candidate:', result.error);
+      }
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
 
   const fetchCandidateData = async () => {
     if (!candidateId) return;
@@ -293,6 +352,19 @@ export default function CandidateProfileModal({ candidateId, isOpen, onClose }: 
           </div>
         )}
       </DialogContent>
+
+      {/* Paywall Modal */}
+      <PaywallModal
+        isOpen={isPaywallOpen}
+        onClose={() => {
+          setIsPaywallOpen(false);
+          if (!canView) onClose();
+        }}
+        candidateId={candidateId}
+        candidateName={candidate ? `${candidate.first_name} ${candidate.last_name}` : undefined}
+        onUnlock={handleUnlock}
+        isUnlocking={isUnlocking}
+      />
     </Dialog>
   );
 }

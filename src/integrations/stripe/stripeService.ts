@@ -1,19 +1,38 @@
+// ============================================================================
+// Stripe Service - Payment & Subscription Management
+// Real Stripe integration for company subscriptions
+// ============================================================================
+
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { loadStripe, Stripe } from '@stripe/stripe-js';
 
-// Stripe disabled - using mock mode only
-export const STRIPE_PUBLIC_KEY = '';
+// ============================================================================
+// Configuration
+// ============================================================================
 
-// Mock stripe promise - Stripe is disabled
-export const stripePromise = Promise.resolve(null);
+// Stripe public key from environment
+export const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY || '';
 
-// Plan configurations
+// Check if Stripe is properly configured
+export const isStripeConfigured = (): boolean => {
+  return STRIPE_PUBLIC_KEY !== '' && STRIPE_PUBLIC_KEY !== 'pk_test_placeholder';
+};
+
+// Load Stripe.js
+export const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
+
+// ============================================================================
+// Plan Configurations
+// ============================================================================
+
 export const PRICING_PLANS = {
   starter: {
-    id: 'starter',
+    id: 'starter' as const,
     name: 'STARTER',
     price: 200,
     originalPrice: 400,
+    yearlyPrice: 2000,
     currency: 'EUR',
     interval: 'month',
     features: [
@@ -22,13 +41,18 @@ export const PRICING_PLANS = {
       '20 video-curriculum in target/mese (accesso limitato)',
       'Dati & Insight'
     ],
-    idealFor: 'PMI, negozi, franchising, hospitality, aziende che vogliono testare il formato video.'
+    idealFor: 'PMI, negozi, franchising, hospitality, aziende che vogliono testare il formato video.',
+    limits: {
+      videosPerMonth: 1,
+      profilesPerMonth: 20,
+    }
   },
   builder: {
-    id: 'builder',
+    id: 'builder' as const,
     name: 'BUILDER',
     price: 500,
     originalPrice: 1000,
+    yearlyPrice: 5000,
     currency: 'EUR',
     interval: 'month',
     features: [
@@ -38,13 +62,18 @@ export const PRICING_PLANS = {
       'Minimo 50 video-CV garantiti per ogni annuncio',
       'Performance organica cross-social (TikTok, Instagram, LinkedIn, YouTube)'
     ],
-    idealFor: 'Aziende in crescita, realtà con hiring mensile, retail strutturato, logistica, centri servizi.'
+    idealFor: 'Aziende in crescita, realtà con hiring mensile, retail strutturato, logistica, centri servizi.',
+    limits: {
+      videosPerMonth: 3,
+      profilesPerMonth: 150,
+    }
   },
   hero: {
-    id: 'hero',
+    id: 'hero' as const,
     name: 'HERO',
     price: 1000,
     originalPrice: 2000,
+    yearlyPrice: 10000,
     currency: 'EUR',
     interval: 'month',
     features: [
@@ -54,55 +83,92 @@ export const PRICING_PLANS = {
       'Nessuna restrizione sui contenuti',
       'Video-curriculum illimitati in target/mese'
     ],
-    idealFor: 'Corporate, gruppi multi-sede, grandi team HR, alta richiesta di personale, progetti annuali di employer branding.'
+    idealFor: 'Corporate, gruppi multi-sede, grandi team HR, alta richiesta di personale, progetti annuali di employer branding.',
+    limits: {
+      videosPerMonth: null, // unlimited
+      profilesPerMonth: null, // unlimited
+    }
   }
 } as const;
 
 export type PlanId = keyof typeof PRICING_PLANS;
 export type Plan = typeof PRICING_PLANS[PlanId];
+export type BillingInterval = 'month' | 'year';
 
-// Create a checkout session via backend API
-export const createCheckoutSession = async (planId: PlanId, userEmail: string, userId: string) => {
+// ============================================================================
+// Checkout Session
+// ============================================================================
+
+export interface CreateCheckoutSessionOptions {
+  planId: PlanId;
+  userId: string;
+  userEmail: string;
+  interval?: BillingInterval;
+  successUrl?: string;
+  cancelUrl?: string;
+  promoCode?: string;
+  trialPeriodDays?: number;
+}
+
+export const createCheckoutSession = async (options: CreateCheckoutSessionOptions) => {
   try {
-    const plan = PRICING_PLANS[planId];
-    
-    // Call backend API to create checkout session
+    const plan = PRICING_PLANS[options.planId];
+    const interval = options.interval || 'month';
+    const isYearly = interval === 'year';
+
+    // Calculate price based on interval
+    const price = isYearly ? plan.yearlyPrice : plan.price;
+
     const response = await fetch('/api/create-checkout-session', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        planId,
-        price: plan.price,
+        planId: options.planId,
+        price,
         currency: plan.currency,
-        userEmail,
-        userId,
-        planName: plan.name
+        interval,
+        userEmail: options.userEmail,
+        userId: options.userId,
+        planName: plan.name,
+        successUrl: options.successUrl || `${window.location.origin}/profile?tab=subscription&success=true`,
+        cancelUrl: options.cancelUrl || `${window.location.origin}/pricing`,
+        promoCode: options.promoCode,
+        trialPeriodDays: options.trialPeriodDays,
       }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to create checkout session');
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create checkout session');
     }
 
-    const data = await response.json();
-    return data;
+    return await response.json();
   } catch (error) {
     console.error('Error creating checkout session:', error);
     throw error;
   }
 };
 
-// Redirect to checkout - Stripe disabled, always using mock mode
-export const redirectToCheckout = async (planId: PlanId, userEmail: string, userId: string) => {
-  const checkoutData = await createCheckoutSession(planId, userEmail, userId);
+// Redirect to Stripe Checkout
+export const redirectToCheckout = async (options: CreateCheckoutSessionOptions) => {
+  const checkoutData = await createCheckoutSession(options);
 
-  // Always use mock mode since Stripe is disabled
-  window.location.href = `/profile?tab=subscription&success=true&mock=true`;
+  // Validate response
+  if (!checkoutData.sessionId || !checkoutData.url) {
+    throw new Error('Invalid checkout session response');
+  }
+
+  // Redirect to Stripe Checkout using the URL directly
+  window.location.href = checkoutData.url;
 };
 
-// Get user's subscription from database
+// ============================================================================
+// Subscription Management
+// ============================================================================
+
+// Get user's active subscription
 export const getUserSubscription = async (userId: string) => {
   try {
     const { data, error } = await supabase
@@ -111,9 +177,10 @@ export const getUserSubscription = async (userId: string) => {
       .eq('user_id', userId)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
-      .single();
+      .limit(1)
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       throw error;
     }
 
@@ -124,7 +191,27 @@ export const getUserSubscription = async (userId: string) => {
   }
 };
 
-// Create subscription record in database (called after successful checkout)
+// Get all user subscriptions (including canceled)
+export const getAllUserSubscriptions = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching user subscriptions:', error);
+    throw error;
+  }
+};
+
+// Create subscription record
 export const createSubscriptionRecord = async (subscriptionData: {
   user_id: string;
   stripe_subscription_id: string;
@@ -155,7 +242,7 @@ export const createSubscriptionRecord = async (subscriptionData: {
   }
 };
 
-// Cancel subscription via backend API
+// Cancel subscription at period end
 export const cancelSubscription = async (subscriptionId: string) => {
   try {
     const response = await fetch('/api/cancel-subscription', {
@@ -192,15 +279,15 @@ export const cancelSubscription = async (subscriptionId: string) => {
 
 // Update subscription status
 export const updateSubscriptionStatus = async (
-  subscriptionId: string, 
+  subscriptionId: string,
   status: Database['public']['Enums']['subscription_status']
 ) => {
   try {
     const { error } = await supabase
       .from('subscriptions')
-      .update({ 
+      .update({
         status,
-        updated_at: new Date().toISOString() 
+        updated_at: new Date().toISOString()
       })
       .eq('stripe_subscription_id', subscriptionId);
 
@@ -215,15 +302,174 @@ export const updateSubscriptionStatus = async (
   }
 };
 
-// Mock checkout for development
-export const mockCheckout = (planId: PlanId) => {
-  const plan = PRICING_PLANS[planId];
-  console.log(`Mock checkout for ${plan.name} plan - €${plan.price}/month`);
-  alert(`Mock checkout initiated for ${plan.name} plan - €${plan.price}/month\nIn production, this would redirect to Stripe checkout.`);
-  return Promise.resolve();
+// ============================================================================
+// Customer Portal
+// ============================================================================
+
+export interface CreatePortalSessionOptions {
+  userId: string;
+  returnUrl?: string;
+}
+
+export const createPortalSession = async (options: CreatePortalSessionOptions) => {
+  try {
+    const response = await fetch('/api/create-portal-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId: options.userId,
+        returnUrl: options.returnUrl || `${window.location.origin}/profile?tab=subscription`,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create portal session');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error creating portal session:', error);
+    throw error;
+  }
 };
 
-// Get Stripe customer ID from user profile
+export const redirectToPortal = async (options: CreatePortalSessionOptions) => {
+  const portalData = await createPortalSession(options);
+  window.location.href = portalData.url;
+};
+
+// ============================================================================
+// Payment History
+// ============================================================================
+
+export interface PaymentRecord {
+  id: string;
+  user_id: string;
+  stripe_payment_intent_id: string | null;
+  stripe_invoice_id: string | null;
+  subscription_id: string | null;
+  amount: number;
+  currency: string;
+  status: 'pending' | 'succeeded' | 'failed' | 'refunded' | 'partial_refund';
+  payment_type: 'subscription' | 'one_time' | 'trial';
+  period_start: string | null;
+  period_end: string | null;
+  description: string | null;
+  metadata: any;
+  refunded_amount: number;
+  refund_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const getPaymentHistory = async (userId: string, limit = 20) => {
+  try {
+    const { data, error } = await supabase
+      .from('payment_records')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw error;
+    }
+
+    return data as PaymentRecord[];
+  } catch (error) {
+    console.error('Error fetching payment history:', error);
+    throw error;
+  }
+};
+
+export const getPaymentById = async (paymentId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('payment_records')
+      .select('*')
+      .eq('id', paymentId)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data as PaymentRecord;
+  } catch (error) {
+    console.error('Error fetching payment:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
+// Subscription Usage
+// ============================================================================
+
+export interface SubscriptionUsage {
+  id: string;
+  subscription_id: string;
+  period_start: string;
+  period_end: string;
+  videos_posted: number;
+  videos_remaining: number | null;
+  profiles_viewed: number;
+  profiles_remaining: number | null;
+  messages_sent: number;
+  matches_made: number;
+  plan_type: 'starter' | 'builder' | 'hero';
+  created_at: string;
+  updated_at: string;
+}
+
+export const getSubscriptionUsage = async (subscriptionId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('subscription_usage')
+      .select('*')
+      .eq('subscription_id', subscriptionId)
+      .order('period_start', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    return data as SubscriptionUsage | null;
+  } catch (error) {
+    console.error('Error fetching subscription usage:', error);
+    throw error;
+  }
+};
+
+export const incrementUsage = async (
+  subscriptionId: string,
+  counterType: 'videos_posted' | 'profiles_viewed' | 'messages_sent' | 'matches_made'
+) => {
+  try {
+    const { data, error } = await supabase.rpc('increment_usage_counter', {
+      p_subscription_id: subscriptionId,
+      p_counter_type: counterType,
+      p_increment: 1,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error incrementing usage:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
+// Stripe Customer Management
+// ============================================================================
+
 export const getStripeCustomerId = async (userId: string) => {
   try {
     const { data: profile } = await supabase
@@ -239,7 +485,6 @@ export const getStripeCustomerId = async (userId: string) => {
   }
 };
 
-// Update Stripe customer ID in user profile
 export const updateStripeCustomerId = async (userId: string, customerId: string) => {
   try {
     const { error } = await supabase
@@ -258,39 +503,114 @@ export const updateStripeCustomerId = async (userId: string, customerId: string)
   }
 };
 
-// Test/Sandbox mode utilities
-export const isTestMode = () => {
-  return import.meta.env.DEV || window.location.hostname === 'localhost';
+// ============================================================================
+// Utilities
+// ============================================================================
+
+// Check if Stripe is configured
+export const ensureStripeConfigured = (): void => {
+  if (!isStripeConfigured()) {
+    throw new Error('Stripe non è configurato. Contatta l\'amministratore.');
+  }
 };
 
-// Process mock payment (for testing)
-export const processMockPayment = async (planId: PlanId, userId: string) => {
-  try {
-    const response = await fetch('/api/create-checkout-session', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        planId,
-        price: PRICING_PLANS[planId].price,
-        currency: 'EUR',
-        userEmail: 'test@example.com',
-        userId,
-        planName: PRICING_PLANS[planId].name
-      }),
-    });
+// Format currency
+export const formatCurrency = (amount: number, currency = 'EUR') => {
+  return new Intl.NumberFormat('it-IT', {
+    style: 'currency',
+    currency,
+  }).format(amount);
+};
 
-    const data = await response.json();
-    
-    if (data.isMock) {
-      console.log('Mock payment processed successfully:', data);
-      return data.subscription;
+// Format date
+export const formatDate = (dateString: string) => {
+  return new Intl.DateTimeFormat('it-IT', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date(dateString));
+};
+
+// Calculate days remaining
+export const getDaysRemaining = (periodEnd: string) => {
+  const endDate = new Date(periodEnd);
+  const now = new Date();
+  const diffTime = endDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  return Math.max(0, diffDays);
+};
+
+// Get plan limits
+export const getPlanLimits = (planId: PlanId) => {
+  return PRICING_PLANS[planId].limits;
+};
+
+// Check if feature is available based on usage
+export const isFeatureAvailable = async (
+  userId: string,
+  feature: 'videos' | 'profiles'
+): Promise<boolean> => {
+  try {
+    const subscription = await getUserSubscription(userId);
+    if (!subscription) return false;
+
+    const usage = await getSubscriptionUsage(subscription.id);
+    if (!usage) return true; // No usage tracked, assume available
+
+    if (feature === 'videos') {
+      return usage.videos_remaining === null || usage.videos_remaining > 0;
     }
-    
-    throw new Error('Expected mock response');
+
+    if (feature === 'profiles') {
+      return usage.profiles_remaining === null || usage.profiles_remaining > 0;
+    }
+
+    return false;
   } catch (error) {
-    console.error('Error processing mock payment:', error);
-    throw error;
+    console.error('Error checking feature availability:', error);
+    return false;
+  }
+};
+
+// Get credits usage information
+export const getCreditsUsage = async (userId: string) => {
+  try {
+    const subscription = await getUserSubscription(userId);
+    if (!subscription) {
+      return {
+        hasSubscription: false,
+        isUnlimited: false,
+        remaining: 0,
+        viewed: 0,
+        planType: null
+      };
+    }
+
+    const usage = await getSubscriptionUsage(subscription.id);
+    if (!usage) {
+      return {
+        hasSubscription: true,
+        isUnlimited: subscription.plan_type === 'hero',
+        remaining: subscription.plan_type === 'hero' ? null : PRICING_PLANS[subscription.plan_type].limits?.profilesPerMonth || 0,
+        viewed: 0,
+        planType: subscription.plan_type
+      };
+    }
+
+    const isUnlimited = usage.profiles_remaining === null;
+
+    return {
+      hasSubscription: true,
+      isUnlimited,
+      remaining: usage.profiles_remaining,
+      viewed: usage.profiles_viewed,
+      planType: usage.plan_type,
+      periodStart: usage.period_start,
+      periodEnd: usage.period_end
+    };
+  } catch (error) {
+    console.error('Error fetching credits usage:', error);
+    return null;
   }
 };

@@ -8,6 +8,13 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8020,
+    proxy: {
+      // Proxy API requests to Express server on port 8021 (development only)
+      '/api': {
+        target: process.env.VITE_API_URL || 'http://localhost:8021',
+        changeOrigin: true,
+      }
+    }
   },
   plugins: [
     react(),
@@ -19,4 +26,17 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    outDir: 'dist',
+    sourcemap: mode === 'development',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select', '@radix-ui/react-tabs', '@radix-ui/react-toast'],
+        }
+      }
+    }
+  }
 }));

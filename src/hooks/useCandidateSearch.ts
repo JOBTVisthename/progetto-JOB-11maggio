@@ -68,6 +68,10 @@ export function useCandidateSearch() {
       let error: any = null;
       let count: number = 0;
 
+      // Build the base query
+      let baseQuery = supabase.from("candidate_profiles").select("*", { count: 'exact', head: false });
+
+      // Apply video filter if enabled
       if (filters.hasVideo) {
         console.log("🎬 Applying video filter - getting candidates with videos only");
 
@@ -82,88 +86,102 @@ export function useCandidateSearch() {
 
         // Get unique candidate IDs
         const candidateIds = [...new Set(candidatesWithVideos?.map(v => v.candidate_id) || [])];
-        count = candidateIds.length;
 
-        if (candidateIds.length > 0) {
-          // Then get candidate profiles for those IDs with pagination
-          let query = supabase
-            .from("candidate_profiles")
-            .select("*")
-            .in("id", candidateIds);
-
-          // Apply other filters
-          if (filters.jobTitle) {
-            query = query.ilike("desired_job_title", `%${filters.jobTitle}%`);
-          }
-
-          if (filters.location) {
-            query = query.or(`city.ilike.%${filters.location}%,province.ilike.%${filters.location}%,country.ilike.%${filters.location}%`);
-          }
-
-          if (filters.availability && filters.availability !== 'any') {
-            if (filters.availability === 'weekend') {
-              query = query.eq("weekend_availability", true);
-            } else if (filters.availability === 'shift') {
-              query = query.eq("shift_work_availability", true);
-            } else if (filters.availability === 'relocate') {
-              query = query.eq("willing_to_relocate", true);
-            }
-          }
-
-          // Prioritize candidates with profile photos, then by availability date
-          query = query.order('profile_image_url', { ascending: false, nullsFirst: false });
-          query = query.order('available_start_date', { ascending: false, nullsFirst: true });
-
-          // Apply pagination using range
-          const from = (page - 1) * ITEMS_PER_PAGE;
-          const to = from + ITEMS_PER_PAGE - 1;
-          query = query.range(from, to);
-
-          const { data: filteredCandidates, error: candidateError } = await query;
-          error = candidateError;
-          data = filteredCandidates || [];
-        }
-      } else {
-        console.log("🔍 Getting all candidates (no video filter)");
-
-        // Regular search without video filter
-        let query = supabase
-          .from("candidate_profiles")
-          .select("*", { count: 'exact', head: false });
-
-        // Apply filters
-        if (filters.jobTitle) {
-          query = query.ilike("desired_job_title", `%${filters.jobTitle}%`);
+        if (candidateIds.length === 0) {
+          // No candidates with videos found
+          setCandidates([]);
+          setTotalCount(0);
+          setLoading(false);
+          return;
         }
 
-        if (filters.location) {
-          query = query.or(`city.ilike.%${filters.location}%,province.ilike.%${filters.location}%,country.ilike.%${filters.location}%`);
-        }
-
-        if (filters.availability && filters.availability !== 'any') {
-          if (filters.availability === 'weekend') {
-            query = query.eq("weekend_availability", true);
-          } else if (filters.availability === 'shift') {
-            query = query.eq("shift_work_availability", true);
-          } else if (filters.availability === 'relocate') {
-            query = query.eq("willing_to_relocate", true);
-          }
-        }
-
-        // Prioritize candidates with profile photos, then by availability date
-        query = query.order('profile_image_url', { ascending: false, nullsFirst: false });
-        query = query.order('available_start_date', { ascending: false, nullsFirst: true });
-
-        // Apply pagination using range
-        const from = (page - 1) * ITEMS_PER_PAGE;
-        const to = from + ITEMS_PER_PAGE - 1;
-        query = query.range(from, to);
-
-        const result = await query;
-        data = result.data || [];
-        error = result.error;
-        count = result.count || 0;
+        // Filter by candidate IDs
+        baseQuery = baseQuery.in("id", candidateIds);
       }
+
+      // Apply all filters to the base query
+      let query = baseQuery;
+
+      // Job Title filter
+      if (filters.jobTitle) {
+        query = query.ilike("desired_job_title", `%${filters.jobTitle}%`);
+      }
+
+      // Location filter (city, province, or country)
+      if (filters.location) {
+        query = query.or(`city.ilike.%${filters.location}%,province.ilike.%${filters.location}%,country.ilike.%${filters.location}%`);
+      }
+
+      // Availability filter
+      if (filters.availability && filters.availability !== 'any') {
+        if (filters.availability === 'immediate') {
+          // Available immediately or within 7 days
+          query = query.lte('available_start_date', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+        } else if (filters.availability === 'weekend') {
+          query = query.eq("weekend_availability", true);
+        } else if (filters.availability === 'shift') {
+          query = query.eq("shift_work_availability", true);
+        } else if (filters.availability === 'relocate') {
+          query = query.or("willing_to_relocate.eq.true,willing_to_change_region.eq.true");
+        } else if (filters.availability === 'remote') {
+          query = query.eq("remote_availability", true);
+        }
+      }
+
+      // Experience filter (years of experience)
+      if (filters.experience && filters.experience !== 'any') {
+        if (filters.experience === '0-2') {
+          query = query.gte('years_of_experience', 0).lte('years_of_experience', 2);
+        } else if (filters.experience === '3-5') {
+          query = query.gte('years_of_experience', 3).lte('years_of_experience', 5);
+        } else if (filters.experience === '6-10') {
+          query = query.gte('years_of_experience', 6).lte('years_of_experience', 10);
+        } else if (filters.experience === '10+') {
+          query = query.gte('years_of_experience', 10);
+        }
+      }
+
+      // Contract Type filter
+      if (filters.contractType && filters.contractType !== 'any') {
+        query = query.eq("contract_type_preference", filters.contractType);
+      }
+
+      // Education Level filter
+      if (filters.educationLevel && filters.educationLevel !== 'any') {
+        query = query.eq("education_level", filters.educationLevel);
+      }
+
+      // Skills filter (contains any of the selected skills)
+      if (filters.skills && filters.skills.length > 0) {
+        query = query.contains('skills', filters.skills);
+      }
+
+      // Languages filter (contains any of the selected languages)
+      if (filters.languages && filters.languages.length > 0) {
+        query = query.contains('languages', filters.languages);
+      }
+
+      // Salary range filter
+      if (filters.salaryMin) {
+        query = query.gte('salary_expectation_max', filters.salaryMin);
+      }
+      if (filters.salaryMax) {
+        query = query.lte('salary_expectation_min', filters.salaryMax);
+      }
+
+      // Prioritize candidates with profile photos, then by availability date
+      query = query.order('profile_image_url', { ascending: false, nullsFirst: false });
+      query = query.order('available_start_date', { ascending: false, nullsFirst: true });
+
+      // Apply pagination using range
+      const from = (page - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+      query = query.range(from, to);
+
+      const result = await query;
+      data = result.data || [];
+      error = result.error;
+      count = result.count || 0;
 
       if (error) throw error;
 

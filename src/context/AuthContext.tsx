@@ -11,7 +11,7 @@ type AuthContextType = {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, userType: UserType, metadata?: any) => Promise<void>;
+  signUp: (email: string, password: string, userType: UserType, metadata?: any) => Promise<any>;
   signOut: () => Promise<void>;
 };
 

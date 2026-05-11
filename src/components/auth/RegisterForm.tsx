@@ -6,124 +6,96 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import ErrorDisplay from "./ui/ErrorDisplay";
-import { supabase } from "@/integrations/supabase/client";
-import { Upload, FileText, Check, Loader2, User, Building, ArrowLeft, ArrowRight } from "lucide-react";
+import { Check, Loader2, User, Building2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
-  RegisterFormValues,
-  registerSchema,
-  EmailPasswordFields,
-  UserTypeSelector,
-  CompanyNameField,
-  PersonalInfoFields,
-  TermsCheckbox
-} from "./forms/RegisterFormFields";
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from "@/components/ui/form";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { z } from "zod";
+
+const registerSchema = z.object({
+  userType: z.enum(["candidate", "company"], {
+    required_error: "Seleziona il tipo di account"
+  }),
+  email: z.string().email("Inserisci un indirizzo email valido"),
+  password: z.string().min(6, "La password deve contenere almeno 6 caratteri"),
+  confirmPassword: z.string().min(6, "La password deve contenere almeno 6 caratteri"),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  companyName: z.string().optional(),
+  city: z.string().min(1, "La città è obbligatoria"),
+  phone: z.string().min(1, "Il telefono è obbligatorio"),
+})
+  .refine(data => data.password === data.confirmPassword, {
+    message: "Le password non corrispondono",
+    path: ["confirmPassword"],
+  })
+  .refine(data => {
+    if (data.userType === "candidate") {
+      return data.firstName && data.firstName.trim() !== "" &&
+             data.lastName && data.lastName.trim() !== "";
+    }
+    return data.companyName && data.companyName.trim() !== "";
+  }, {
+    message: "Compila tutti i campi obbligatori",
+    path: ["firstName"],
+  });
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { signUp } = useAuth();
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [cvFile, setCvFile] = useState<File | null>(null);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      userType: "candidate",
       email: "",
       password: "",
       confirmPassword: "",
-      userType: "candidate",
-      companyName: "",
       firstName: "",
       lastName: "",
-      acceptTerms: false,
+      companyName: "",
+      city: "",
+      phone: "",
     },
-    mode: "onChange"
   });
 
   const userType = form.watch("userType");
-  const maxSteps = userType === "candidate" ? 3 : 2;
-
-  const handleNext = async () => {
-    let fieldsToValidate: any[] = [];
-    if (step === 1) {
-      fieldsToValidate = ['email', 'password', 'confirmPassword', 'userType'];
-    } else if (step === 2) {
-      if (userType === 'candidate') {
-        fieldsToValidate = ['firstName', 'lastName'];
-      } else {
-        // Company finishes at step 2
-        return;
-      }
-    }
-
-    const isValid = await form.trigger(fieldsToValidate);
-    if (isValid) {
-      setStep(prev => prev + 1);
-    }
-  };
-
-  const handleBack = () => {
-    setStep(prev => prev - 1);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.type !== 'application/pdf') {
-        setError("Per favore carica solo file PDF");
-        return;
-      }
-      setCvFile(file);
-      setError(null);
-    }
-  };
 
   const onSubmit = async (values: RegisterFormValues) => {
     setLoading(true);
     setError(null);
 
     try {
-      if (userType === 'candidate' && !cvFile) {
-        throw new Error("Il CV è obbligatorio");
-      }
-
       const metadata: any = {
-        first_name: values.firstName,
-        last_name: values.lastName,
+        city: values.city,
+        phone: values.phone,
       };
 
-      if (values.userType === "company" && values.companyName?.trim() !== "") {
-        metadata.company_name = values.companyName?.trim();
+      if (values.userType === "candidate") {
+        metadata.first_name = values.firstName;
+        metadata.last_name = values.lastName;
+      } else {
+        metadata.company_name = values.companyName;
       }
 
-      console.log("Preparing signup with:", {
-        email: values.email,
-        userType: values.userType,
-        metadata
-      });
+      await signUp(values.email, values.password, values.userType, metadata);
 
-      const signUpResult: any = await signUp(
-        values.email,
-        values.password,
-        values.userType as 'candidate' | 'company',
-        metadata
-      );
-
-      // Handle CV Upload if candidate and user is created
-      // NOTE: With email confirmation enabled, the user won't have an active session
-      // until they confirm their email. The CV upload will be handled after email
-      // confirmation when the user is redirected to the email confirmation page.
-      // For now, we redirect to the email confirmation page.
-
-      if (userType === 'candidate' && cvFile) {
-        // Store CV file info in sessionStorage to upload after email confirmation
-        sessionStorage.setItem('pendingCVUpload', 'true');
-        sessionStorage.setItem('cvFileName', cvFile.name);
+      // Redirect based on user type
+      if (values.userType === "company") {
+        navigate("/company/dashboard");
+      } else {
+        navigate("/dashboard");
       }
-
-      navigate("/email-confirmation");
     } catch (error: any) {
       console.error("Registration error:", error);
       setError(error?.message || "Si è verificato un errore durante la registrazione");
@@ -135,99 +107,190 @@ export default function RegisterForm() {
   return (
     <div className="w-full max-w-lg mx-auto p-8 bg-white rounded-2xl shadow-xl border border-gray-100">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-jobtv-gradient mb-2">Crea un account</h2>
-        <p className="text-gray-500">
-          Step {step} di {maxSteps}: {
-            step === 1 ? "Credenziali" :
-              step === 2 ? "Profilo" : "Curriculum"
-          }
-        </p>
-
-        {/* Progress Bar */}
-        <div className="w-full h-2 bg-gray-100 rounded-full mt-4 overflow-hidden">
-          <div
-            className="h-full bg-jobtv-gradient transition-all duration-500 ease-out"
-            style={{ width: `${(step / maxSteps) * 100}%` }}
-          />
-        </div>
+        <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-jobtv-gradient mb-2">
+          Crea un account
+        </h2>
+        <p className="text-gray-500">Compila il form per registrarti</p>
       </div>
 
       <ErrorDisplay error={error} />
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* User Type Selector */}
+          <FormField
+            control={form.control}
+            name="userType"
+            render={({ field }) => (
+              <FormItem className="space-y-3">
+                <FormLabel>Tipo di account *</FormLabel>
+                <FormControl>
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    className="grid grid-cols-2 gap-4"
+                  >
+                    <div className={`flex items-center gap-3 border-2 rounded-xl p-4 cursor-pointer transition-all ${field.value === 'candidate' ? 'border-jobtv-blue bg-jobtv-blue/5' : 'border-gray-200 hover:border-jobtv-teal'}`}>
+                      <RadioGroupItem value="candidate" id="candidate" />
+                      <User className={`h-6 w-6 ${field.value === 'candidate' ? 'text-jobtv-blue' : 'text-gray-400'}`} />
+                      <div>
+                        <FormLabel htmlFor="candidate" className="cursor-pointer font-medium">
+                          Candidato
+                        </FormLabel>
+                        <p className="text-xs text-gray-500">Cerco lavoro</p>
+                      </div>
+                    </div>
+                    <div className={`flex items-center gap-3 border-2 rounded-xl p-4 cursor-pointer transition-all ${field.value === 'company' ? 'border-jobtv-blue bg-jobtv-blue/5' : 'border-gray-200 hover:border-jobtv-teal'}`}>
+                      <RadioGroupItem value="company" id="company" />
+                      <Building2 className={`h-6 w-6 ${field.value === 'company' ? 'text-jobtv-blue' : 'text-gray-400'}`} />
+                      <div>
+                        <FormLabel htmlFor="company" className="cursor-pointer font-medium">
+                          Azienda
+                        </FormLabel>
+                        <p className="text-xs text-gray-500">Cerco candidati</p>
+                      </div>
+                    </div>
+                  </RadioGroup>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          {step === 1 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-              <EmailPasswordFields control={form.control} />
-              <UserTypeSelector control={form.control} />
+          {/* Candidate Fields */}
+          {userType === "candidate" && (
+            <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <FormField
+                control={form.control}
+                name="firstName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Mario" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cognome *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Rossi" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
           )}
 
-          {step === 2 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-              {userType === 'candidate' ? (
-                <PersonalInfoFields control={form.control} />
-              ) : (
-                <>
-                  <CompanyNameField control={form.control} />
-                  <TermsCheckbox control={form.control} />
-                </>
+          {/* Company Fields */}
+          {userType === "company" && (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <FormField
+                control={form.control}
+                name="companyName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome Azienda *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="La tua azienda" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email *</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="email@esempio.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="city"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Città *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Milano" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </div>
-          )}
-
-          {step === 3 && userType === 'candidate' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 hover:border-jobtv-teal transition-colors bg-gray-50/50">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="p-4 bg-white rounded-full shadow-sm">
-                    {cvFile ? <FileText className="h-8 w-8 text-jobtv-teal" /> : <Upload className="h-8 w-8 text-gray-400" />}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {cvFile ? cvFile.name : "Carica il tuo CV (Obbligatorio)"}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {cvFile ? `${(cvFile.size / 1024 / 1024).toFixed(2)} MB` : "Trascina o clicca per caricare (PDF)"}
-                    </p>
-                  </div>
-
-                  <div className="relative">
-                    <Button type="button" variant="outline" className="relative z-10 w-full">
-                      {cvFile ? "Cambia file" : "Seleziona file"}
-                    </Button>
-                    <Input
-                      type="file"
-                      accept=".pdf"
-                      onChange={handleFileChange}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                    />
-                  </div>
-                </div>
-              </div>
-              <TermsCheckbox control={form.control} />
-            </div>
-          )}
-
-          <div className="flex justify-between pt-4 gap-4">
-            {step > 1 && (
-              <Button type="button" variant="outline" onClick={handleBack} className="w-1/3">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Indietro
-              </Button>
-            )}
-
-            {step < maxSteps ? (
-              <Button type="button" onClick={handleNext} className="w-full bg-jobtv-gradient ml-auto">
-                Continua <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            ) : (
-              <Button type="submit" className="w-full bg-jobtv-gradient shadow-lg hover:shadow-xl transition-all" disabled={loading}>
-                {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />}
-                {loading ? "Registrazione..." : "Completa Registrazione"}
-              </Button>
-            )}
+            />
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Telefono *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="+39 333 1234567" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
+
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password *</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="Almeno 6 caratteri" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Conferma Password *</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="Ripeti la password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button
+            type="submit"
+            className="w-full bg-jobtv-gradient shadow-lg hover:shadow-xl transition-all"
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader2 className="animate-spin mr-2 h-4 w-4" />
+            ) : (
+              <Check className="mr-2 h-4 w-4" />
+            )}
+            {loading ? "Registrazione..." : "Registrati"}
+          </Button>
 
           <div className="text-center text-sm text-gray-600">
             Hai già un account?{" "}

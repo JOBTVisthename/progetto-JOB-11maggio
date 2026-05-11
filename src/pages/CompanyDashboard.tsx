@@ -85,11 +85,15 @@ const CompanyDashboard = () => {
                 if (matchesError) throw matchesError;
 
                 const liked = matches?.filter(m => m.company_liked).length || 0;
-                const matched = matches?.filter(m => m.match_status === 'matched').length || 0;
+                const matched = matches?.filter(m => m.match_status === 'matched' || (m.candidate_liked && m.company_liked)).length || 0;
 
-                // Mock data for contacted since we don't have a direct 'contacted' flag easily accessible without joining messages
-                // But we can approximate with matches for now or do a separate query
-                const contacted = matched; // For now assuming all matched are contacted or available to contact
+                // Count messages sent by this company
+                const { data: messagesData } = await supabase
+                    .from('messages')
+                    .select('id')
+                    .eq('sender_id', user.id);
+
+                const contacted = messagesData?.length || 0;
 
                 setStats({
                     total: matches?.length || 0,
@@ -98,30 +102,39 @@ const CompanyDashboard = () => {
                     contacted
                 });
 
-                // 2. Fetch Recent Activity (Simulated from matches and real messages)
-                // Ideally we would have an 'activities' table, but we will construct it from matches
+                // 2. Fetch Recent Activity - Get candidate IDs first, then batch fetch profiles
                 const recentMatches = matches
                     ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                    .slice(0, 5)
-                    .map(async (m) => {
-                        const { data: candidate } = await supabase
-                            .from('candidate_profiles')
-                            .select('first_name, last_name')
-                            .eq('id', m.candidate_id)
-                            .single();
+                    .slice(0, 5) || [];
 
-                        return {
-                            id: m.id,
-                            type: m.match_status === 'matched' ? 'match' : 'view',
-                            candidateName: candidate ? `${candidate.first_name} ${candidate.last_name}` : 'Candidato',
-                            candidateId: m.candidate_id,
-                            timestamp: m.created_at,
-                            details: m.match_status === 'matched' ? 'Match confermato' : 'Profilo visualizzato'
-                        } as RecentActivity;
-                    }) || [];
+                const candidateIds = recentMatches.map(m => m.candidate_id);
 
-                const resolvedActivities = await Promise.all(recentMatches);
-                setActivities(resolvedActivities);
+                let candidateProfiles: { [key: string]: { first_name: string | null; last_name: string | null } } = {};
+                if (candidateIds.length > 0) {
+                    const { data: candidates } = await supabase
+                        .from('candidate_profiles')
+                        .select('id, first_name, last_name')
+                        .in('id', candidateIds);
+
+                    candidateProfiles = (candidates || []).reduce((acc, c) => {
+                        acc[c.id] = { first_name: c.first_name, last_name: c.last_name };
+                        return acc;
+                    }, {} as typeof candidateProfiles);
+                }
+
+                const activities: RecentActivity[] = recentMatches.map(m => {
+                    const candidate = candidateProfiles[m.candidate_id];
+                    return {
+                        id: m.id,
+                        type: m.match_status === 'matched' || (m.candidate_liked && m.company_liked) ? 'match' : 'view',
+                        candidateName: candidate ? `${candidate.first_name || ''} ${candidate.last_name || ''}`.trim() || 'Candidato' : 'Candidato',
+                        candidateId: m.candidate_id,
+                        timestamp: m.created_at,
+                        details: m.match_status === 'matched' || (m.candidate_liked && m.company_liked) ? 'Match reciproco' : m.company_liked ? 'Mi piace inviato' : 'Profilo visualizzato'
+                    };
+                });
+
+                setActivities(activities);
 
                 // 3. Generate Chart Data - Aggregate matches by day of week from real data
                 const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
