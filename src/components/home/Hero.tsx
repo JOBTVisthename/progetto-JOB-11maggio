@@ -89,7 +89,7 @@ export default function Hero() {
               {/* Main card */}
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
                 <div className="bg-white rounded-3xl shadow-2xl p-3 transform rotate-3 hover:rotate-6 transition-transform duration-300">
-                  <img 
+                  <img loading="lazy" decoding="async" 
                     src="/lovable-uploads/amilcare.jpeg"
                     alt="Amilcare"
                     className="rounded-2xl w-64 h-auto shadow-lg"
@@ -100,7 +100,7 @@ export default function Hero() {
               {/* Secondary card */}
               <div className="absolute top-1/4 right-0 transform translate-x-8 -translate-y-8 z-10">
                 <div className="bg-white rounded-2xl shadow-xl p-2 transform -rotate-6 hover:-rotate-3 transition-transform duration-300">
-                  <img 
+                  <img loading="lazy" decoding="async" 
                     src="/downloaded-images/image1.jpg"
                     alt="Young professionals"
                     className="rounded-xl w-40 h-40 object-cover"
@@ -111,7 +111,7 @@ export default function Hero() {
               {/* Tertiary card */}
               <div className="absolute bottom-1/4 left-0 transform -translate-x-8 translate-y-8 z-10">
                 <div className="bg-white rounded-2xl shadow-xl p-2 transform rotate-6 hover:rotate-3 transition-transform duration-300">
-                  <img 
+                  <img loading="lazy" decoding="async" 
                     src="/downloaded-images/image2.jpg"
                     alt="Job applicant"
                     className="rounded-xl w-48 h-32 object-cover"
