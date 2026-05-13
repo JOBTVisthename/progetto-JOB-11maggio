@@ -137,19 +137,16 @@ const PricingPlans: React.FC = () => {
         <CardHeader className="text-center pb-6">
           <CardTitle className="text-3xl font-bold gradient-text mb-2">{plan.name}</CardTitle>
           <CardDescription className="text-lg text-gray-600 mb-6">
-            Piano perfetto per {plan.idealFor.toLowerCase()}
+            {plan.idealFor}
           </CardDescription>
 
           <div className="mt-6 mb-8">
             <div className="flex items-baseline justify-center">
-              <span className="text-5xl font-bold gradient-text">€{plan.price}</span>
-              <span className="text-xl text-gray-500 ml-2">/{plan.interval}</span>
+              <span className="text-5xl font-bold gradient-text">€{plan.price}+IVA</span>
+              <span className="text-xl text-gray-500 ml-2">
+                {plan.interval === 'month' ? 'al mese' : "all'anno"}
+              </span>
             </div>
-            {plan.originalPrice && (
-              <div className="text-lg text-gray-400 line-through mt-2">
-                €{plan.originalPrice}/{plan.interval}
-              </div>
-            )}
           </div>
         </CardHeader>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,14 @@ import PaywallModal from "@/components/payment/PaywallModal";
 import { useAuth } from "@/context/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useCredits } from "@/hooks/useCredits";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 interface CandidateSearchResultsProps {
   candidates: any[];
@@ -19,6 +27,7 @@ interface CandidateSearchResultsProps {
   totalCount?: number;
   currentPage?: number;
   itemsPerPage?: number;
+  loading?: boolean;
   onPageChange?: (page: number) => void;
 }
 
@@ -31,6 +40,7 @@ export default function CandidateSearchResults({
   totalCount = 0,
   currentPage = 1,
   itemsPerPage = 20,
+  loading = false,
   onPageChange
 }: CandidateSearchResultsProps) {
   const { user } = useAuth();
@@ -41,6 +51,7 @@ export default function CandidateSearchResults({
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [selectedCandidateForPaywall, setSelectedCandidateForPaywall] = useState<any>(null);
   const [unlockingCandidateId, setUnlockingCandidateId] = useState<string | null>(null);
+  const [isNoResultsDialogOpen, setIsNoResultsDialogOpen] = useState(false);
 
   const canViewFullProfiles = canAccessPremium();
 
@@ -91,6 +102,12 @@ export default function CandidateSearchResults({
     }
   };
 
+  useEffect(() => {
+    if (!showOnlyLiked && !loading && candidates.length === 0 && totalCount === 0) {
+      setIsNoResultsDialogOpen(true);
+    }
+  }, [showOnlyLiked, loading, candidates.length, totalCount]);
+
   const getInitials = (firstName?: string, lastName?: string) => {
     if (!firstName && !lastName) return "CN";
     return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`;
@@ -117,16 +134,36 @@ export default function CandidateSearchResults({
 
   if (candidates.length === 0) {
     return (
-      <div className="text-center border rounded-md p-10 bg-white">
-        <User className="h-12 w-12 mx-auto text-gray-400" />
-        <h3 className="mt-2 text-lg font-medium text-gray-900">Nessun candidato trovato</h3>
-        <p className="mt-1 text-sm text-gray-500">
-          {showOnlyLiked
-            ? "Non hai ancora aggiunto like a nessun candidato"
-            : "Prova a modificare i criteri di ricerca"
-          }
-        </p>
-      </div>
+      <>
+        <Dialog open={isNoResultsDialogOpen} onOpenChange={setIsNoResultsDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Non hai trovato candidati?</DialogTitle>
+              <DialogDescription>
+                Può capitare. Registra un video o pubblica un annuncio.
+                <br />
+                JOBTTV ti mostrerà candidati realmente interessati e compatibili.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-6 flex justify-end">
+              <DialogClose asChild>
+                <Button className="jobtv-button">Chiudi</Button>
+              </DialogClose>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <div className="text-center border rounded-md p-10 bg-white">
+          <User className="h-12 w-12 mx-auto text-gray-400" />
+          <h3 className="mt-2 text-lg font-medium text-gray-900">Nessun candidato trovato</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            {showOnlyLiked
+              ? "Non hai ancora aggiunto like a nessun candidato"
+              : "Prova a modificare i criteri di ricerca"
+            }
+          </p>
+        </div>
+      </>
     );
   }
 

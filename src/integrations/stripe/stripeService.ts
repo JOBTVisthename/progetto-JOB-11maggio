@@ -36,12 +36,11 @@ export const PRICING_PLANS = {
     currency: 'EUR',
     interval: 'month',
     features: [
-      '1 video annuncio job offer attivo al mese',
-      'Pubblicazione su Job TV + rilancio organico sui social',
-      '20 video-curriculum in target/mese (accesso limitato)',
-      'Dati & Insight'
+      '1 video job offer attivo al mese',
+      'Rilancio organico sui canali social di Job TV e Marco Messina',
+      'Dati & insight sulle performance'
     ],
-    idealFor: 'PMI, negozi, franchising, hospitality, aziende che vogliono testare il formato video.',
+    idealFor: '👉 Ideale per PMI, negozi e realtà che cercano una figura in modo occasionale',
     limits: {
       videosPerMonth: 1,
       profilesPerMonth: 20,
@@ -56,13 +55,13 @@ export const PRICING_PLANS = {
     currency: 'EUR',
     interval: 'month',
     features: [
-      '3 video annunci attivi al mese',
-      'Distribuzione continuativa ottimizzata',
-      '150 video-curriculum in target/mese',
-      'Minimo 50 video-CV garantiti per ogni annuncio',
-      'Performance organica cross-social (TikTok, Instagram, LinkedIn, YouTube)'
+      '3 video job offer attivi al mese',
+      'Pubblicazione su Job TV',
+      'Rilancio organico sui canali social di Job TV e Marco Messina',
+      'Sponsorizzazione del caso di successo per aumentare reach e credibilità',
+      'Insight sulle performance delle campagne'
     ],
-    idealFor: 'Aziende in crescita, realtà con hiring mensile, retail strutturato, logistica, centri servizi.',
+    idealFor: '👉 Ideale per aziende in crescita con più posizioni aperte',
     limits: {
       videosPerMonth: 3,
       profilesPerMonth: 150,
@@ -77,13 +76,13 @@ export const PRICING_PLANS = {
     currency: 'EUR',
     interval: 'month',
     features: [
-      'Video annunci inclusi',
-      'Annunci illimitati ogni mese',
-      'Nessun limite di upload',
-      'Nessuna restrizione sui contenuti',
-      'Video-curriculum illimitati in target/mese'
+      'Video job offer illimitati ogni mese',
+      'Rilancio organico sui canali social di Job TV e Marco Messina',
+      'Sponsorizzazione dei contenuti e dei casi di successo',
+      'Insight avanzati per ottimizzare le performance',
+      'Collaborazioni dirette con Marco Messina'
     ],
-    idealFor: 'Corporate, gruppi multi-sede, grandi team HR, alta richiesta di personale, progetti annuali di employer branding.',
+    idealFor: '👉 Ideale per aziende strutturate che assumono con continuità',
     limits: {
       videosPerMonth: null, // unlimited
       profilesPerMonth: null, // unlimited
