@@ -374,25 +374,6 @@ export default function CompanyRegisterForm() {
                         autoComplete="new-password"
                       />
                       <button
-
-      {/* Pop-up Modale per il Telefono */}
-      {popUp.show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-scale-in">
-            <div className="text-center">
-              <div className="mb-4 text-4xl">{popUp.title.split(" ")[0]}</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">{popUp.title.substring(popUp.title.indexOf(" ") + 1)}</h3>
-              <p className="text-gray-600 mb-6 leading-relaxed">{popUp.message}</p>
-              <button
-                onClick={() => setPopUp({ show: false, title: "", message: "" })}
-                className="bg-gradient-to-r from-jobtv-teal to-jobtv-blue text-white px-8 py-2 rounded-full font-semibold hover:opacity-90 transition-opacity"
-              >
-                Ho capito
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
@@ -472,6 +453,25 @@ export default function CompanyRegisterForm() {
           </div>
         </form>
       </Form>
+
+      {/* Pop-up Modale per il Telefono */}
+      {popUp.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-scale-in">
+            <div className="text-center">
+              <div className="mb-4 text-4xl">{popUp.title.split(" ")[0]}</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">{popUp.title.substring(popUp.title.indexOf(" ") + 1)}</h3>
+              <p className="text-gray-600 mb-6 leading-relaxed">{popUp.message}</p>
+              <button
+                onClick={() => setPopUp({ show: false, title: "", message: "" })}
+                className="bg-gradient-to-r from-jobtv-teal to-jobtv-blue text-white px-8 py-2 rounded-full font-semibold hover:opacity-90 transition-opacity"
+              >
+                Ho capito
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

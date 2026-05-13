@@ -110,5 +110,6 @@ export default function MatchesContent({ matches, userType, setMatches }: Matche
         </Tabs>
       </div>
     </div>
+    </>
   );
 }
