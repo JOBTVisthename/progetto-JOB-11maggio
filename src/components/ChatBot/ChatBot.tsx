@@ -12,7 +12,8 @@ interface Message {
 }
 
 export default function ChatBot() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [conversationState, setConversationState] = useState<"initial" | "candidate" | "company">("initial");
@@ -27,6 +28,7 @@ export default function ChatBot() {
   useEffect(() => {
     const handleOpenChatBot = (event: any) => {
       setIsOpen(true);
+      setIsMinimized(false);
       if (event?.detail?.message) {
         setMessages([
           {
@@ -105,6 +107,15 @@ export default function ChatBot() {
     }
   };
 
+  const handleClose = () => {
+    setIsOpen(false);
+    setIsMinimized(false);
+  };
+
+  const handleMinimize = () => {
+    setIsMinimized(true);
+  };
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
@@ -139,7 +150,10 @@ export default function ChatBot() {
       {/* Chatbot Floating Button */}
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            setIsOpen(true);
+            setIsMinimized(false);
+          }}
           className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-r from-jobtv-teal to-jobtv-blue text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center hover:scale-110 animate-bounce"
           aria-label="Apri chatbot"
         >
@@ -147,8 +161,34 @@ export default function ChatBot() {
         </button>
       )}
 
+      {/* Minimized Chatbot */}
+      {isOpen && isMinimized && (
+        <div className="fixed bottom-6 right-6 z-50 w-72 rounded-full bg-white/95 border border-gray-200 shadow-xl backdrop-blur-md flex items-center justify-between px-4 py-3 gap-3">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">JOBBOLO 🤖</p>
+            <p className="text-xs text-gray-500">Clicca per riaprire</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsMinimized(false)}
+              className="text-jobtv-blue hover:text-jobtv-teal"
+              aria-label="Ripristina chatbot"
+            >
+              ▲
+            </button>
+            <button
+              onClick={handleClose}
+              className="text-gray-500 hover:text-gray-900"
+              aria-label="Chiudi chatbot"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Chatbot Window */}
-      {isOpen && (
+      {isOpen && !isMinimized && (
         <div className="fixed bottom-6 right-6 z-50 w-96 max-w-[calc(100vw-2rem)] h-[32rem] max-h-[calc(100vh-2rem)] bg-white rounded-2xl shadow-2xl flex flex-col border border-gray-200 overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-jobtv-teal to-jobtv-blue text-white p-4 flex items-center justify-between">
@@ -156,13 +196,22 @@ export default function ChatBot() {
               <h3 className="font-bold text-lg">JOBBOLO 🤖</h3>
               <p className="text-xs text-white/80">Assistente Virtuale di JobTV</p>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-white/20 p-2 rounded-full transition-colors"
-              aria-label="Chiudi chatbot"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleMinimize}
+                className="text-white hover:bg-white/20 p-2 rounded-full transition-colors"
+                aria-label="Riduci chatbot"
+              >
+                −
+              </button>
+              <button
+                onClick={handleClose}
+                className="text-white hover:bg-white/20 p-2 rounded-full transition-colors"
+                aria-label="Chiudi chatbot"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Messages Container */}
