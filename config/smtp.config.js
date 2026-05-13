@@ -17,6 +17,87 @@ export const smtpConfig = {
 };
 
 // Email templates
+const frontendUrl = process.env.FRONTEND_URL || 'https://app.jobtv.it';
+
+const welcomeGeneric = (name) => ({
+  subject: 'Benvenuto in JobTV!',
+  html: `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Benvenuto in JobTV</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #3b82f6, #14b8a6); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Benvenuto su JobTV! 🎉</h1>
+        </div>
+        <div class="content">
+          <p>Ciao ${name},</p>
+          <p>Grazie per esserti registrato su JobTV. Siamo felici di averti con noi.</p>
+          <p>Ora puoi iniziare a esplorare la piattaforma, completare il tuo profilo e sfruttare il matching intelligente per trovare opportunità in linea con te.</p>
+        </div>
+        <div class="footer">
+          <p>© 2025 JobTV. Tutti i diritti riservati.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+});
+
+const welcomeCompany = (name) => ({
+  subject: 'Benvenuto in JobTV – La tua azienda in primo piano',
+  html: `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Benvenuto in JobTV</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #3b82f6, #14b8a6); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+        .button { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #3b82f6, #14b8a6); color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Ciao, sono Marco di JobTV</h1>
+        </div>
+        <div class="content">
+          <p>Grazie per esserti registrato come azienda.</p>
+          <p>Spesso le aziende interrogano il nostro database cercando candidati, ma JobTV vuole fare il contrario: far vedere <strong>la tua azienda</strong> ai candidati giusti.</p>
+          <p>Pubblica subito la tua job offer e, se vuoi aumentare ancora di più la visibilità aziendale, registra anche un breve video in cui presenti la tua azienda e il profilo che stai cercando.</p>
+          <p>È tutto <strong>gratis</strong> e puoi pubblicare tutti gli annunci che vuoi.</p>
+          <p>Saranno poi i candidati a mettere like in modo mirato alle tue offerte: a quel punto sarai tu a scegliere se visualizzarli e decidere se procedere.</p>
+          <p>Abbiamo già aiutato decine di aziende: ora tocca a te.</p>
+          <center>
+            <a href="${frontendUrl}/company/dashboard" class="button">Vai al tuo pannello</a>
+          </center>
+        </div>
+        <div class="footer">
+          <p>© 2025 JobTV. Tutti i diritti riservati.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+});
+
 export const emailTemplates = {
   confirmation: (name, confirmUrl) => ({
     subject: 'Conferma la tua registrazione su JobTV',
@@ -62,41 +143,11 @@ export const emailTemplates = {
     `
   }),
 
-  welcome: (name) => ({
-    subject: 'Benvenuto in JobTV!',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Benvenuto in JobTV</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #3b82f6, #14b8a6); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
-          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Registrazione Completata! 🎉</h1>
-          </div>
-          <div class="content">
-            <p>Ciao ${name},</p>
-            <p>La tua email è stata confermata con successo. Ora puoi accedere a tutte le funzionalità di JobTV!</p>
-            <p>Inizia subito ad esplorare le opportunità che awaitti.</p>
-          </div>
-          <div class="footer">
-            <p>© 2025 JobTV. Tutti i diritti riservati.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `
-  }),
+  welcomeGeneric,
+  welcomeCompany,
+  welcome: (name, userType = 'candidate') => {
+    return userType === 'company' ? welcomeCompany(name) : welcomeGeneric(name);
+  },
 
   passwordReset: (name, resetUrl) => ({
     subject: 'Reset della tua password JobTV',

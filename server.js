@@ -27,6 +27,7 @@ async function startServer() {
   const cancelRouter = (await import('./src/pages/api/cancel-subscription/route.js')).default;
   const emailRouter = (await import('./src/pages/api/send-confirmation-email/route.js')).default;
   const registerRouter = (await import('./src/pages/api/register/route.js')).default;
+  const generateSkillsRouter = (await import('./src/pages/api/generate-job-skills/route.js')).default;
 
   // API Routes
   app.use('/api/create-checkout-session', checkoutRouter);
@@ -34,6 +35,7 @@ async function startServer() {
   app.use('/api/cancel-subscription', cancelRouter);
   app.use('/api/send-email', emailRouter);
   app.use('/api/register', registerRouter);
+  app.use('/api/generate-job-skills', generateSkillsRouter);
 
   // Health check
   app.get('/api/health', (req, res) => {
@@ -46,7 +48,7 @@ async function startServer() {
     const serverUrl = isDev ? `http://localhost:${PORT}` : `http://${HOST}:${PORT}`;
     console.log(`\n➜  API Server running at ${serverUrl}/`);
     console.log(`➜  Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`➜  API endpoints: /api/create-checkout-session, /api/create-portal-session, /api/cancel-subscription, /api/send-email, /api/register`);
+    console.log(`➜  API endpoints: /api/create-checkout-session, /api/create-portal-session, /api/cancel-subscription, /api/send-email, /api/register, /api/generate-job-skills`);
     if (isDev) {
       console.log(`➜  Frontend: http://localhost:8020/`);
     }

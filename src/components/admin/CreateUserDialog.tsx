@@ -78,9 +78,22 @@ export function CreateUserDialog({ open, onOpenChange, onSuccess }: CreateUserDi
             if (authError) throw authError;
 
             if (authData.user) {
-                // Wait a small amount for triggers to complete if they handle profile creation
-                // However, we can also manually ensure profiles exist if needed.
-                // Actually, the database already has triggers in many Supabase templates.
+                // Send welcome email to the newly created user
+                fetch('/api/send-email/welcome', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: values.email,
+                        name: values.full_name,
+                        userType: values.user_type,
+                    }),
+                }).then((response) => response.json()).then((result) => {
+                    console.log('Admin welcome email result:', result);
+                }).catch((emailError) => {
+                    console.error('Error sending admin welcome email:', emailError);
+                });
 
                 toast({
                     title: "Utente creato",
@@ -90,11 +103,12 @@ export function CreateUserDialog({ open, onOpenChange, onSuccess }: CreateUserDi
                 onOpenChange(false);
                 onSuccess();
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
             console.error("Error creating user:", error);
             toast({
                 title: "Errore",
-                description: error.message || "Impossibile creare l'utente",
+                description: errorMessage || "Impossibile creare l'utente",
                 variant: "destructive",
             });
         } finally {
