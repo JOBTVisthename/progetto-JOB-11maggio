@@ -106,11 +106,6 @@ const PaywallModal: React.FC<PaywallModalProps> = ({
             <span className="text-2xl font-bold">€{plan.price}</span>
             <span className="text-sm text-muted-foreground ml-1">/mese</span>
           </div>
-          {plan.originalPrice && (
-            <div className="text-xs text-muted-foreground line-through">
-              €{plan.originalPrice}/mese
-            </div>
-          )}
         </CardHeader>
         <CardContent className="pt-0">
           <ul className="space-y-2 text-sm">

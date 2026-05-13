@@ -69,7 +69,7 @@ export default function Hero() {
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start space-y-4 sm:space-y-0 sm:space-x-8 pt-6 text-gray-600">
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-jobtv-teal rounded-full"></div>
-                <span className="text-sm font-medium">1000+ candidati</span>
+                <span className="text-sm font-medium">160mila candidati</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-jobtv-blue rounded-full"></div>

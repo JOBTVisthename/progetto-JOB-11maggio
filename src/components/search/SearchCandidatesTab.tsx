@@ -45,6 +45,7 @@ export default function SearchCandidatesTab({
           totalCount={totalCount}
           currentPage={currentPage}
           itemsPerPage={itemsPerPage}
+          loading={loading}
           onPageChange={(page) => onSearch({}, page)}
         />
       )}
