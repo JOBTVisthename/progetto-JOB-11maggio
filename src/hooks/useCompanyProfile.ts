@@ -14,6 +14,7 @@ export interface CompanyProfile {
   industry: string | null;
   company_size: string | null;
   founded_year: number | null;
+  sdi_code?: string | null;
   updated_at?: string;
 }
 
@@ -32,14 +33,23 @@ export const useCompanyProfile = () => {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data: companyData, error: companyError } = await supabase
         .from('company_profiles')
         .select('*')
         .eq('id', user.id)
         .maybeSingle();
 
-      if (error) throw error;
-      setProfile(data);
+      if (companyError) throw companyError;
+
+      const { data: profileMeta, error: profileError } = await supabase
+        .from('profiles')
+        .select('sdi_code')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      setProfile(companyData ? { ...companyData, sdi_code: profileMeta?.sdi_code ?? null } : null);
     } catch (error: any) {
       console.error('Error fetching company profile:', error);
       // Don't show toast for initial fetch - might not have profile yet
@@ -53,42 +63,71 @@ export const useCompanyProfile = () => {
   }, [user]);
 
   // Update company profile
-  const updateProfile = async (updates: Partial<CompanyProfile>) => {
+  const updateProfile = async (updates: Partial<CompanyProfile>, showToast = true) => {
     if (!user) {
-      toast({
-        title: "Errore",
-        description: "Utente non autenticato",
-        variant: "destructive",
-      });
+      if (showToast) {
+        toast({
+          title: "Errore",
+          description: "Utente non autenticato",
+          variant: "destructive",
+        });
+      }
       return { success: false };
     }
 
     setUpdating(true);
 
     try {
-      const { error } = await supabase
-        .from('company_profiles')
-        .update(updates)
-        .eq('id', user.id);
+      const companyUpdates = { ...updates } as Partial<CompanyProfile>;
+      const profileUpdates: { sdi_code?: string | null } = {};
 
-      if (error) throw error;
+      if ('sdi_code' in companyUpdates) {
+        profileUpdates.sdi_code = companyUpdates.sdi_code;
+        delete (companyUpdates as any).sdi_code;
+      }
 
-      // Update local state
-      setProfile(prev => prev ? { ...prev, ...updates } : null);
+      if (Object.keys(companyUpdates).length > 0) {
+        const { error: companyError } = await supabase
+          .from('company_profiles')
+          .update(companyUpdates)
+          .eq('id', user.id);
 
-      toast({
-        title: "Profilo aggiornato",
-        description: "Le informazioni sono state salvate con successo",
+        if (companyError) throw companyError;
+      }
+
+      if (Object.keys(profileUpdates).length > 0) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update(profileUpdates)
+          .eq('id', user.id);
+
+        if (profileError) throw profileError;
+      }
+
+      setProfile(prev => {
+        if (!prev) {
+          return { ...companyUpdates, ...profileUpdates } as CompanyProfile;
+        }
+        return { ...prev, ...companyUpdates, ...profileUpdates };
       });
+
+      if (showToast) {
+        toast({
+          title: "Profilo aggiornato",
+          description: "Le informazioni sono state salvate con successo",
+        });
+      }
 
       return { success: true };
     } catch (error: any) {
       console.error('Error updating company profile:', error);
-      toast({
-        title: "Errore",
-        description: error.message || "Impossibile aggiornare il profilo",
-        variant: "destructive",
-      });
+      if (showToast) {
+        toast({
+          title: "Errore",
+          description: error.message || "Impossibile aggiornare il profilo",
+          variant: "destructive",
+        });
+      }
       return { success: false };
     } finally {
       setUpdating(false);

@@ -1,7 +1,7 @@
 
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ArrowRight } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 
 const ForCandidates = () => {
@@ -56,7 +56,11 @@ const ForCandidates = () => {
                   ))}
                 </ul>
                 
-                <div className="mt-8">
+                <div className="mt-8 relative inline-block">
+                  <div className="absolute -top-16 left-0 bg-white text-jobtv-teal px-4 py-2 rounded-lg shadow-lg border-2 border-jobtv-teal font-bold text-sm whitespace-nowrap animate-bounce">
+                    SEI CANDIDATO? CLICCA QUI
+                    <div className="absolute bottom-0 left-6 w-3 h-3 bg-white border-r-2 border-b-2 border-jobtv-teal transform rotate-45 -translate-y-1/2"></div>
+                  </div>
                   <Button asChild className="bg-white text-jobtv-blue hover:bg-gray-100">
                     <Link to="/register">Inizia Ora</Link>
                   </Button>

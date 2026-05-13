@@ -27,9 +27,7 @@ export default function CTASection() {
             </h2>
             
             <p className="text-xl md:text-2xl text-white/90 leading-relaxed max-w-4xl mx-auto text-balance mb-8">
-              Unisciti a migliaia di professionisti che utilizzano la piattaforma per 
-              <span className="font-bold text-white">presentarsi</span> e 
-              <span className="font-bold text-white">connettersi</span> in modo innovativo.
+              Unisciti a migliaia di professionisti che utilizzano la piattaforma per presentarsi e connettersi in modo innovativo.
             </p>
           </div>
 
@@ -38,7 +36,7 @@ export default function CTASection() {
             {[
               {
                 icon: <Users className="w-8 h-8" />,
-                title: "50k+ Utenti",
+                title: "169'000 Utenti",
                 description: "Professionisti attivi sulla piattaforma"
               },
               {
