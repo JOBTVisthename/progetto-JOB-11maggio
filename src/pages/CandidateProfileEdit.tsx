@@ -252,11 +252,7 @@ export default function CandidateProfile() {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("candidate-photos")
-        .getPublicUrl(fileName);
-
-      setProfileImageUrl(publicUrl);
+      setProfileImageUrl(fileName);
 
       toast({
         title: "Foto caricata",
@@ -301,16 +297,12 @@ export default function CandidateProfile() {
       const fileName = `${user.id}/cv/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("curriculum_files")
+        .from("candidate-cvs")
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("curriculum_files")
-        .getPublicUrl(fileName);
-
-      setCvUrl(publicUrl);
+      setCvUrl(fileName);
 
       toast({
         title: "CV caricato",
@@ -426,14 +418,10 @@ export default function CandidateProfile() {
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from("video-interviews")
+        .from("videos")
         .upload(fileName, blob);
 
       if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("video-interviews")
-        .getPublicUrl(fileName);
 
       // Save to database
       const { error: dbError } = await supabase
@@ -441,7 +429,7 @@ export default function CandidateProfile() {
         .insert({
           candidate_id: user.id,
           title,
-          video_url: publicUrl,
+          video_url: fileName,
           thumbnail_url: null,
         });
 

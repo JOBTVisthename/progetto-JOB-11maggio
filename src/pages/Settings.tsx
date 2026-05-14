@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
- suimport { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -75,7 +75,21 @@ const Settings: React.FC = () => {
   const [candidateProfile, setCandidateProfile] = useState<any>(null);
   const [loadingCandidate, setLoadingCandidate] = useState(false);
 
-  // Candidate form state
+  // NOTIFICHE
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(false);
+
+  // AZIENDA FORM STATE
+  const [companyName, setCompanyName] = useState('');
+  const [companyDescription, setCompanyDescription] = useState('');
+  const [companyWebsite, setCompanyWebsite] = useState('');
+  const [companyCity, setCompanyCity] = useState('');
+  const [companyPhone, setCompanyPhone] = useState('');
+  const [companyIndustry, setCompanyIndustry] = useState('');
+  const [companySize, setCompanySize] = useState('');
+  const [companyFoundedYear, setCompanyFoundedYear] = useState('');
+
+  // CANDIDATO FORM STATE
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [candidateCity, setCandidateCity] = useState('');
@@ -87,8 +101,10 @@ const Settings: React.FC = () => {
   const [shiftWorkAvailability, setShiftWorkAvailability] = useState(false);
   const [weekendAvailability, setWeekendAvailability] = useState(false);
   const [profileImageUrl, setProfileImageUrl] = useState('');
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [cvUrl, setCvUrl] = useState('');
+
+  // Candidate form state
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingCv, setUploadingCv] = useState(false);
 
   useEffect(() => {
@@ -146,20 +162,6 @@ const Settings: React.FC = () => {
     }
   };
 
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(false);
-
-  // Company profile form state
-  const [companyName, setCompanyName] = useState('');
-  const [companyDescription, setCompanyDescription] = useState('');
-  const [companyWebsite, setCompanyWebsite] = useState('');
-  const [companyCity, setCompanyCity] = useState('');
-  const [companyPhone, setCompanyPhone] = useState('');
-  const [companyIndustry, setCompanyIndustry] = useState('');
-  const [companySize, setCompanySize] = useState('');
-  const [companyFoundedYear, setCompanyFoundedYear] = useState('');
-
-  // Load company profile data into form
   useEffect(() => {
     if (companyProfile) {
       setCompanyName(companyProfile.company_name || '');
@@ -513,18 +515,11 @@ const Settings: React.FC = () => {
 
     try {
       let fileName = cvUrl;
-      let bucketName = 'candidate-cvs';
+      const bucketName = 'candidate-cvs';
 
       // Handle different URL formats
       if (cvUrl.startsWith('http')) {
-        // Full URL format - extract bucket and filename
-        if (cvUrl.includes('/curriculum_files/')) {
-          bucketName = 'curriculum_files';
-          const parts = cvUrl.split('/curriculum_files/');
-          if (parts.length > 1) {
-            fileName = parts[1].split('/')[0] + '/' + parts[1].split('/')[1];
-          }
-        } else if (cvUrl.includes('/candidate-cvs/')) {
+        if (cvUrl.includes('/candidate-cvs/')) {
           const parts = cvUrl.split('/candidate-cvs/');
           if (parts.length > 1) {
             fileName = parts[1];

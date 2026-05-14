@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, ChangeEvent } from "react"; // Added ChangeEvent
+import { useState, useEffect, useRef, useCallback } from "react"; 
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
@@ -178,23 +178,14 @@ export default function RecordInterview() {
       setStreamError(errorMsg);
       setVideoDevices([]); // Clear devices list on error
     } finally {
-      setIsRequestingPermission(false);
+      setIsRequestingPermission(false); // Ensure flag is reset
     }
-  // Added selectedDeviceId and stream to dependencies
-  }, [isRequestingPermission, selectedDeviceId, stream]); 
-
+  }, [selectedDeviceId]);
   useEffect(() => {
-    // Initial camera request
-    if (!previewUrl && !stream && !streamError && videoDevices.length === 0) {
+    if (!previewUrl && !stream && !streamError) {
       requestCameraPermission();
     }
-    
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [previewUrl, stream, streamError, requestCameraPermission]);
+  }, [previewUrl, requestCameraPermission]); 
 
   // useEffect to attach the stream to the video element when stream state changes
   // useEffect to attach the stream to the video element when stream state changes

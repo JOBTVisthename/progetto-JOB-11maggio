@@ -71,50 +71,16 @@ const CreateJobOffer: React.FC = () => {
     }
   });
 
-  // 1. Auto-salvataggio su localStorage
-  useEffect(() => {
-    const savedData = localStorage.getItem('jobtv_job_offer_draft');
-    if (savedData) {
-      const parsed = JSON.parse(savedData);
-      Object.keys(parsed).forEach((key) => {
-        form.setValue(key as any, parsed[key]);
-      });
-    }
-  }, [form]);
-
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      localStorage.setItem('jobtv_job_offer_draft', JSON.stringify(value));
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
-
-  // 2. Logica Template Automatici
-  const jobTitle = form.watch('title');
-  useEffect(() => {
-    if (jobTitle && jobTitle.length > 5) {
-      const template = getTemplateByTitle(jobTitle);
-      if (template.description !== "Inserisci qui una descrizione dettagliata del ruolo...") {
-        form.setValue('description', template.description, { shouldDirty: true });
-        form.setValue('skills', template.skills.join(', '), { shouldDirty: true });
-        form.setValue('salary_range', template.salary_range, { shouldDirty: true });
-      }
-    }
-  }, [jobTitle, form]);
-
   const nextStep = async () => {
-    let fieldsToValidate: (keyof JobOfferFormValues)[] = [];
-    if (step === 1) fieldsToValidate = ['title'];
-    if (step === 2) fieldsToValidate = ['description', 'skills'];
-    if (step === 3) fieldsToValidate = ['salary_range', 'location', 'contract_type'];
-
-    const isValid = await form.trigger(fieldsToValidate);
+    const fieldsToValidate = step === 1 ? ['title'] : step === 2 ? ['description', 'skills'] : ['salary_range', 'location', 'contract_type'];
+    const isValid = await form.trigger(fieldsToValidate as any);
     if (isValid) {
       if (step === 1) setShowEncouragement(true);
       setStep((prev) => Math.min(prev + 1, totalSteps));
     }
   };
 
+  const jobTitle = form.watch('title');
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
 
   const onSubmit = async (values: JobOfferFormValues) => {
@@ -130,7 +96,6 @@ const CreateJobOffer: React.FC = () => {
 
       if (error) throw error;
 
-      localStorage.removeItem('jobtv_job_offer_draft');
       setShowFinalPopup(true);
     } catch (error: any) {
       toast({
@@ -147,7 +112,7 @@ const CreateJobOffer: React.FC = () => {
       
       <main className="container max-w-3xl mx-auto py-12 px-4">
         <div className="mb-8">
-          <div className="flex justify-between items-end mb-4">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Crea Offerta di Lavoro</h1>
               <p className="text-gray-500">Step {step} di {totalSteps}</p>

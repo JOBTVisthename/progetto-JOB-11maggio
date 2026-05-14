@@ -223,27 +223,17 @@ const AdminDashboard = () => {
       .from('company_profiles')
       .select('id, company_name, profile_image_url, vat_number, phone');
 
-    // Attach profiles to users
     const candidateMap = new Map(candidateProfiles?.map(p => [p.id, p]) || []);
     const companyMap = new Map(companyProfiles?.map(p => [p.id, p]) || []);
 
-    allUsers.forEach(user => {
+    // Usiamo un ciclo normale per evitare errori asincroni nel forEach
+    for (const user of allUsers) {
       if (user.user_type === 'candidate') {
         (user as any).candidate_profiles = candidateMap.get(user.id) || null;
       } else if (user.user_type === 'company') {
         (user as any).company_profiles = companyMap.get(user.id) || null;
-        
-        // Fetch additional stats for companies (Job Offers, Videos, Likes)
-        const { count: jobCount } = await supabaseAdmin.from('job_offers').select('*', { count: 'exact', head: true }).eq('company_id', user.id);
-        const { count: videoCount } = await supabaseAdmin.from('video_interviews').select('*', { count: 'exact', head: true }).eq('company_id', user.id);
-        const { data: likes } = await supabaseAdmin.from('job_matching').select('id').eq('company_id', user.id).eq('candidate_liked', true);
-        
-        (user as any).job_offers_count = jobCount || 0;
-        (user as any).videos_count = videoCount || 0;
-        (user as any).total_likes = likes?.length || 0;
-        (user as any).email = (await supabaseAdmin.auth.admin.getUserById(user.id)).data.user?.email;
       }
-    });
+    }
 
     console.log(`✅ Attached ${candidateMap.size} candidate profiles and ${companyMap.size} company profiles`);
 

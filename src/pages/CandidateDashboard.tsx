@@ -83,28 +83,23 @@ const CandidateDashboard = () => {
 
             // 1. Upload to Supabase Storage
             const { error: uploadError } = await supabase.storage
-                .from('curriculum_files')
+                .from('candidate-cvs')
                 .upload(fileName, file, {
                     upsert: true
                 });
 
             if (uploadError) throw uploadError;
 
-            // 2. Get Public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('curriculum_files')
-                .getPublicUrl(fileName);
-
-            // 3. Update Profile
+            // 2. Update Profile using only the fileName path
             const { error: updateError } = await supabase
                 .from('candidate_profiles')
-                .update({ cv_url: publicUrl })
+                .update({ cv_url: fileName })
                 .eq('id', user.id);
 
             if (updateError) throw updateError;
 
-            // 4. Update local state
-            setProfile((prev: any) => ({ ...prev, cv_url: publicUrl }));
+            // 3. Update local state
+            setProfile((prev: any) => ({ ...prev, cv_url: fileName }));
 
             toast({
                 title: "CV Aggiornato",
