@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ChatBot from "@/components/ChatBot/ChatBot";
+import Analytics from "@/components/analytics/Analytics";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -170,6 +171,7 @@ const App = () => (
               }
             />
           </Routes>
+          <Analytics />
           <ChatBot />
         </BrowserRouter>
       </TooltipProvider>
