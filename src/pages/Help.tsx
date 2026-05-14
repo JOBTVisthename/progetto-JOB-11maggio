@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import GuidedChatBot from '@/components/ui/GuidedChatBot';
 
 const Help: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -330,7 +331,10 @@ const Help: React.FC = () => {
                     <div className="space-y-2">
                       <div className="text-sm text-gray-500">Disponibile</div>
                       <div className="font-medium text-green-600">Online ora</div>
-                      <Button className="w-full jobtv-button mt-4">
+                      <Button 
+                        className="w-full jobtv-button mt-4"
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-jobtv-chat'))}
+                      >
                         Inizia Chat
                       </Button>
                     </div>
@@ -433,6 +437,8 @@ const Help: React.FC = () => {
           </Tabs>
         </div>
       </main>
+      
+      <GuidedChatBot />
       
       <Footer />
     </div>

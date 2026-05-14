@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+ suimport { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -603,6 +604,7 @@ const Settings: React.FC = () => {
         industry: companyIndustry,
         company_size: companySize,
         founded_year: companyFoundedYear ? parseInt(companyFoundedYear) : null,
+        logo_url: companyProfile?.logo_url, // Mantiene il logo esistente se non modificato
       });
 
       if (!result.success) {

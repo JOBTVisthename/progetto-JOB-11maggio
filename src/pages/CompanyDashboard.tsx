@@ -10,7 +10,10 @@ import {
     Briefcase,
     UserCheck,
     Clock,
-    ArrowUpRight
+    ArrowUpRight,
+    Plus,
+    Calendar,
+    MapPin
 } from "lucide-react";
 import {
     AreaChart,
@@ -25,6 +28,7 @@ import {
 } from "recharts";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,6 +57,14 @@ type RecentActivity = {
     details?: string;
 };
 
+type JobOffer = {
+    id: string;
+    title: string;
+    location: string;
+    created_at: string;
+    status: string;
+};
+
 const CompanyDashboard = () => {
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -68,6 +80,7 @@ const CompanyDashboard = () => {
     });
     const [activities, setActivities] = useState<RecentActivity[]>([]);
     const [chartData, setChartData] = useState<any[]>([]);
+    const [recentJobs, setRecentJobs] = useState<JobOffer[]>([]);
 
     useEffect(() => {
         if (!user) return;
@@ -121,6 +134,17 @@ const CompanyDashboard = () => {
                         return acc;
                     }, {} as typeof candidateProfiles);
                 }
+
+                // 4. Fetch Recent Job Offers
+                const { data: jobOffers, error: jobsError } = await supabase
+                    .from('job_offers')
+                    .select('id, title, location, created_at, status')
+                    .eq('company_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (jobsError) throw jobsError;
+                setRecentJobs(jobOffers || []);
 
                 const activities: RecentActivity[] = recentMatches.map(m => {
                     const candidate = candidateProfiles[m.candidate_id];
@@ -206,6 +230,12 @@ const CompanyDashboard = () => {
                             <p className="text-gray-500 mt-2">Bentornato! Ecco le performance delle tue attività di recruiting.</p>
                         </div>
                         <div className="mt-4 md:mt-0 flex space-x-3">
+                            <Button asChild className="bg-jobtv-gradient text-white border-0 shadow-lg hover:scale-105 transition-all duration-300">
+                                <Link to="/create-job-offer">
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Nuova Offerta
+                                </Link>
+                            </Button>
                             <Button asChild className="bg-jobtv-gradient text-white border-0">
                                 <Link to="/search-candidates">
                                     <Search className="mr-2 h-4 w-4" />
@@ -332,13 +362,74 @@ const CompanyDashboard = () => {
                         </Card>
                     </div>
 
+                    {/* Recent Job Offers List */}
+                    <Card className="mb-8 shadow-sm border-gray-100">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Ultime Offerte Pubblicate</CardTitle>
+                                <CardDescription>Le tue posizioni aperte più recenti</CardDescription>
+                            </div>
+                            <Button variant="outline" size="sm" asChild>
+                                <Link to="/create-job-offer">Vedi tutte</Link>
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {recentJobs.length > 0 ? (
+                                    recentJobs.map((job) => (
+                                        <div key={job.id} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl hover:shadow-md transition-all group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="p-3 bg-jobtv-blue/5 rounded-lg group-hover:bg-jobtv-blue/10 transition-colors">
+                                                    <Briefcase className="w-5 h-5 text-jobtv-blue" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-900 group-hover:text-jobtv-blue transition-colors">{job.title}</h4>
+                                                    <div className="flex items-center gap-3 mt-1">
+                                                        <span className="text-xs text-gray-500 flex items-center">
+                                                            <MapPin className="w-3 h-3 mr-1" /> {job.location}
+                                                        </span>
+                                                        <span className="text-xs text-gray-500 flex items-center">
+                                                            <Calendar className="w-3 h-3 mr-1" /> {new Date(job.created_at).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${job.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                    {job.status === 'active' ? 'Attiva' : 'Archiviata'}
+                                                </div>
+                                                <Button variant="ghost" size="icon" className="text-gray-400 hover:text-jobtv-blue h-8 w-8">
+                                                    <ArrowUpRight className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-12 text-gray-500 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+                                        <Briefcase className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                                        <p>Non hai ancora pubblicato offerte di lavoro.</p>
+                                        <Button variant="link" asChild className="mt-2 text-jobtv-blue">
+                                            <Link to="/create-job-offer">Crea la tua prima offerta</Link>
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     {/* Quick Actions & Suggestions */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <Card className="shadow-sm border-gray-100">
                             <CardHeader>
                                 <CardTitle>Azioni Rapide</CardTitle>
                             </CardHeader>
-                            <CardContent className="grid grid-cols-2 gap-4">
+                            <CardContent className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-4">
+                                <Button variant="outline" className="h-24 flex flex-col items-center justify-center gap-2 border-jobtv-blue/20 bg-jobtv-blue/5 hover:bg-jobtv-blue/10 hover:border-jobtv-blue transition-colors group" asChild>
+                                    <Link to="/create-job-offer">
+                                        <Briefcase className="h-6 w-6 text-jobtv-blue group-hover:scale-110 transition-transform" />
+                                        <span className="font-semibold text-jobtv-blue">Crea Offerta</span>
+                                    </Link>
+                                </Button>
                                 <Button variant="outline" className="h-24 flex flex-col items-center justify-center gap-2 hover:border-jobtv-blue hover:text-jobtv-blue transition-colors" asChild>
                                     <Link to="/search-candidates">
                                         <Search className="h-6 w-6" />
@@ -394,13 +485,6 @@ const CompanyDashboard = () => {
         </PageLayout>
     );
 };
-
-const PlusIcon = ({ className }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M5 12h14" />
-        <path d="M12 5v14" />
-    </svg>
-);
 
 const StatCard = ({ title, value, icon: Icon, trend, color, bgColor }: any) => (
     <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 border-gray-100">

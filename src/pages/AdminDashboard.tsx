@@ -221,7 +221,7 @@ const AdminDashboard = () => {
     // Now fetch company profiles
     const { data: companyProfiles } = await supabaseAdmin
       .from('company_profiles')
-      .select('id, company_name, profile_image_url');
+      .select('id, company_name, profile_image_url, vat_number, phone');
 
     // Attach profiles to users
     const candidateMap = new Map(candidateProfiles?.map(p => [p.id, p]) || []);
@@ -232,6 +232,16 @@ const AdminDashboard = () => {
         (user as any).candidate_profiles = candidateMap.get(user.id) || null;
       } else if (user.user_type === 'company') {
         (user as any).company_profiles = companyMap.get(user.id) || null;
+        
+        // Fetch additional stats for companies (Job Offers, Videos, Likes)
+        const { count: jobCount } = await supabaseAdmin.from('job_offers').select('*', { count: 'exact', head: true }).eq('company_id', user.id);
+        const { count: videoCount } = await supabaseAdmin.from('video_interviews').select('*', { count: 'exact', head: true }).eq('company_id', user.id);
+        const { data: likes } = await supabaseAdmin.from('job_matching').select('id').eq('company_id', user.id).eq('candidate_liked', true);
+        
+        (user as any).job_offers_count = jobCount || 0;
+        (user as any).videos_count = videoCount || 0;
+        (user as any).total_likes = likes?.length || 0;
+        (user as any).email = (await supabaseAdmin.auth.admin.getUserById(user.id)).data.user?.email;
       }
     });
 
@@ -1144,9 +1154,28 @@ const CompaniesTable = ({ companies, onManageSubscription }: any) => {
                       {companyData.company_name?.charAt(0) || 'A'}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{companyData.company_name || 'N/A'}</h3>
-                    <p className="text-sm text-gray-500">{company.email}</p>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-gray-900">{companyData.company_name || 'N/A'}</h3>
+                    <div className="space-y-1 mt-1">
+                      <p className="text-xs text-gray-500 font-medium">MAIL: <span className="text-jobtv-blue">{company.email || 'N/A'}</span></p>
+                      <p className="text-xs text-gray-500 font-medium">P.IVA: <span className="text-gray-700">{companyData.vat_number || 'Non inserita'}</span></p>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 mt-4">
+                      <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 text-center">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold">Job Offers</p>
+                        <p className="text-sm font-bold text-jobtv-blue">{company.job_offers_count || 0}</p>
+                      </div>
+                      <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 text-center">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold">Video</p>
+                        <p className="text-sm font-bold text-jobtv-teal">{company.videos_count || 0}</p>
+                      </div>
+                      <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 text-center">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold">Like Ricevuti</p>
+                        <p className="text-sm font-bold text-pink-500">{company.total_likes || 0}</p>
+                      </div>
+                    </div>
+
                     <div className="flex items-center gap-2 mt-2">
                       {subscription && (
                         <>
