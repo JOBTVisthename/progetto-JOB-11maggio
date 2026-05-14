@@ -11,14 +11,14 @@ type UserType = 'candidate' | 'company';
 /**
  * Send welcome email via SMTP
  */
-const sendWelcomeEmail = async (email: string, name: string) => {
+const sendWelcomeEmail = async (email: string, name: string, userType: UserType = 'candidate') => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/send-email/welcome`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, name }),
+      body: JSON.stringify({ email, name, userType }),
     });
 
     const result = await response.json();
@@ -52,10 +52,11 @@ export const useAuthService = () => {
         title: "Accesso effettuato",
         description: "Benvenuto in JobTV!",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       toast({
         title: "Errore di accesso",
-        description: error.message || "Si è verificato un errore durante l'accesso",
+        description: errorMessage || "Si è verificato un errore durante l'accesso",
         variant: "destructive",
       });
       throw error;
@@ -66,7 +67,7 @@ export const useAuthService = () => {
     email: string,
     password: string,
     userType: UserType,
-    metadata?: any
+    metadata?: Record<string, unknown>
   ) => {
     try {
       console.log("Attempting to sign up user:", { email, userType, metadata });
@@ -98,7 +99,7 @@ export const useAuthService = () => {
 
       // Send welcome email via SMTP (non-blocking)
       const userName = metadata?.first_name || metadata?.company_name || email.split('@')[0];
-      sendWelcomeEmail(email, userName).catch(err => console.log("Email failed (non-blocking):", err));
+      sendWelcomeEmail(email, userName, userType).catch(err => console.log("Email failed (non-blocking):", err));
 
       toast({
         title: "Registrazione completata!",
@@ -106,11 +107,12 @@ export const useAuthService = () => {
       });
 
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("Error in signUp function:", error);
       toast({
         title: "Errore di registrazione",
-        description: error?.message || "Si è verificato un errore durante la registrazione. Riprova.",
+        description: errorMessage || "Si è verificato un errore durante la registrazione. Riprova.",
         variant: "destructive",
       });
       throw error;
@@ -125,10 +127,11 @@ export const useAuthService = () => {
         title: "Disconnessione effettuata",
         description: "Hai effettuato il logout con successo",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       toast({
         title: "Errore di disconnessione",
-        description: error.message || "Si è verificato un errore durante la disconnessione",
+        description: errorMessage || "Si è verificato un errore durante la disconnessione",
         variant: "destructive",
       });
     }

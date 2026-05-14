@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -138,6 +138,7 @@ const Settings: React.FC = () => {
       setWeekendAvailability(data?.weekend_availability || false);
       setProfileImageUrl(data?.profile_image_url || '');
       setCvUrl(data?.cv_url || '');
+      candidateAutoSaveReady.current = true;
     } catch (error) {
       console.error('Error fetching candidate profile:', error);
     } finally {
@@ -157,6 +158,7 @@ const Settings: React.FC = () => {
   const [companyIndustry, setCompanyIndustry] = useState('');
   const [companySize, setCompanySize] = useState('');
   const [companyFoundedYear, setCompanyFoundedYear] = useState('');
+  const [companySdi, setCompanySdi] = useState('');
 
   // Load company profile data into form
   useEffect(() => {
@@ -169,8 +171,10 @@ const Settings: React.FC = () => {
       setCompanyIndustry(companyProfile.industry || '');
       setCompanySize(companyProfile.company_size || '');
       setCompanyFoundedYear(companyProfile.founded_year?.toString() || '');
+      setCompanySdi(companyProfile.sdi_code || user?.user_metadata?.sdi || '');
+      companyAutoSaveReady.current = true;
     }
-  }, [companyProfile]);
+  }, [companyProfile, user]);
 
   // Password change states
   const [currentPassword, setCurrentPassword] = useState('');
@@ -188,6 +192,11 @@ const Settings: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState('profile');
   const [saving, setSaving] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState('');
+  const companyAutoSaveTimeout = useRef<number | null>(null);
+  const candidateAutoSaveTimeout = useRef<number | null>(null);
+  const companyAutoSaveReady = useRef(false);
+  const candidateAutoSaveReady = useRef(false);
 
   // Password validation
   const getPasswordStrength = (password: string) => {
@@ -297,7 +306,7 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleSaveCandidate = async () => {
+  const saveCandidateProfile = async (showToast = true) => {
     setSaving(true);
     try {
       const { error } = await supabase
@@ -320,20 +329,31 @@ const Settings: React.FC = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Profilo aggiornato",
-        description: "Le tue informazioni sono state salvate con successo",
-      });
+      if (showToast) {
+        toast({
+          title: "Profilo aggiornato",
+          description: "Le tue informazioni sono state salvate con successo",
+        });
+      }
+
+      return { success: true };
     } catch (error: any) {
       console.error('Error saving profile:', error);
-      toast({
-        title: "Errore",
-        description: error.message || "Impossibile salvare il profilo",
-        variant: "destructive",
-      });
+      if (showToast) {
+        toast({
+          title: "Errore",
+          description: error.message || "Impossibile salvare il profilo",
+          variant: "destructive",
+        });
+      }
+      return { success: false };
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSaveCandidate = async () => {
+    await saveCandidateProfile(true);
   };
 
   const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

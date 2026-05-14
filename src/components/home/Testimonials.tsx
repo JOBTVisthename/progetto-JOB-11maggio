@@ -6,24 +6,57 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 export default function Testimonials() {
   const testimonials = [
     {
-      name: "Andrea",
-      company: "La Cristalleria",
+      name: "Marco Biasini",
+      title: "Web Developer",
+      company: "TechSolutions",
+      location: "Milano",
       content:
-        "Sono Andrea della Cristalleria di Milano, cercavo una figura per il mio store, ho fatto un VIDEO annuncio su JOBTV e 20 candidati hanno messo like alla mia offerta! Fantastico!!!",
+        "La possibilità di registrare video risposte mi ha permesso di mostrare la mia personalità oltre alle competenze tecniche. Ho trovato il lavoro perfetto in meno di un mese!",
       rating: 5,
     },
     {
-      name: "Alessia",
-      company: "Risto Jobs",
+      name: "Laura Masi",
+      title: "HR Manager",
+      company: "Innovate Inc.",
+      location: "Roma",
       content:
-        "Noi con RISTOJOB cerchiamo personale per il comparto ristorazione in Italia ma soprattutto all'estero, e con JOBTV ho contattato subito tanti candidati per le nostre esigenze.",
+        "JobTV ci ha aiutato a migliorare il nostro processo di valutazione iniziale, permettendoci di conoscere meglio i profili prima del contatto. Il tempo di recruitment si è ridotto del 60%.",
       rating: 5,
     },
     {
-      name: "",
-      company: "Goldbet Monza",
+      name: "Gianni Miceli",
+      title: "Product Designer",
+      company: "DesignLab",
+      location: "Torino",
       content:
-        "Cercavo una ragazza da mettere come front desk, e con JOBTV in meno di 24 ore ho ricevuto il contatto di 15 candidati. Consigliatissimo!",
+        "La funzione di matching mi ha permesso di essere contattato da aziende che non avrei pensato di incontrare. Finalmente un processo selettivo che funziona davvero!",
+      rating: 5,
+    },
+    {
+      name: "Sofia Esposito",
+      title: "Marketing Specialist",
+      company: "BrandBoost",
+      location: "Bologna",
+      content:
+        "La video-presentazione ha fatto la differenza e mi ha permesso di farmi conoscere meglio. Ho ricevuto 3 proposte di lavoro nella prima settimana!",
+      rating: 5,
+    },
+    {
+      name: "Alessandro Neri",
+      title: "Software Engineer",
+      company: "CodeFirst",
+      location: "Firenze",
+      content:
+        "Dopo mesi di ricerche infruttuose, con JobTV ho trovato l'azienda giusta in poche settimane. Il sistema di matching è incredibilmente accurato.",
+      rating: 5,
+    },
+    {
+      name: "Chiara Galli",
+      title: "UX Designer",
+      company: "UserFocus",
+      location: "Napoli",
+      content:
+        "Come recruiter, JobTV ha trasformato il mio lavoro. Posso valutare i candidati in modo più completo e risparmiare tempo prezioso.",
       rating: 5,
     },
   ];
@@ -110,9 +143,13 @@ export default function Testimonials() {
                         {t.name && (
                           <h4 className="font-bold text-gray-900 text-lg">{t.name}</h4>
                         )}
+                        {t.title && (
+                          <div className="text-sm text-gray-600">{t.title}</div>
+                        )}
                         <div className="flex items-center text-sm text-gray-600 mt-1">
                           <Building className="w-3 h-3 mr-1" />
                           {t.company}
+                          {t.location && <span className="ml-1">• {t.location}</span>}
                         </div>
                       </div>
                     </div>
@@ -156,11 +193,11 @@ export default function Testimonials() {
           </div>
         </div>
 
-        {/* Stats row — "Tempo medio risposta" rimosso, utenti attivi aggiornato a 169.000 */}
+        {/* Stats row — "Tempo medio risposta" rimosso, utenti attivi aggiornato a 160+ */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
           {[
             { value: "98%", label: "Soddisfazione", icon: "⭐" },
-            { value: "169.000", label: "Utenti attivi", icon: "👥" },
+            { value: "160+", label: "Utenti attivi", icon: "👥" },
             { value: "85%", label: "Match di successo", icon: "🎯" },
           ].map((stat, index) => (
             <div

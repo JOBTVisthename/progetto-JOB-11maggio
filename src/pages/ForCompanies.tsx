@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Search, ThumbsUp, MessageSquare } from "lucide-react";
+import { CheckCircle2, Search, ThumbsUp, MessageSquare, ArrowRight } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 
 const ForCompanies = () => {
@@ -49,7 +49,11 @@ const ForCompanies = () => {
                   ))}
                 </ul>
                 
-                <div className="mt-8">
+                <div className="mt-8 relative inline-block">
+                  <div className="absolute -top-16 left-0 bg-white text-jobtv-teal px-4 py-2 rounded-lg shadow-lg border-2 border-jobtv-teal font-bold text-sm whitespace-nowrap animate-bounce">
+                    SEI AZIENDA? CREA LA TUA OFFERTA DI LAVORO CLICCANDO QUI
+                    <div className="absolute bottom-0 left-6 w-3 h-3 bg-white border-r-2 border-b-2 border-jobtv-teal transform rotate-45 -translate-y-1/2"></div>
+                  </div>
                   <Button asChild className="bg-white text-jobtv-blue hover:bg-gray-100">
                     <Link to="/register">Inizia Ora</Link>
                   </Button>
@@ -144,6 +148,27 @@ const ForCompanies = () => {
                   Metti "Mi piace" ai profili interessanti e inizia a comunicare con i candidati che ricambiano.
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-jobtv-teal to-jobtv-blue rounded-xl p-8 mb-16 relative overflow-hidden">
+            <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full"></div>
+            <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full"></div>
+            
+            <div className="relative z-10 text-center">
+              <div className="inline-block relative mb-6">
+                <div className="absolute -top-20 left-1/2 transform -translate-x-1/2 bg-white text-jobtv-teal px-6 py-3 rounded-lg shadow-xl border-2 border-jobtv-teal font-bold text-sm text-center animate-bounce">
+                  METTI IL TUO ANNUNCIO<br />
+                  E REGISTRA IL VIDEO<br />
+                  per ricevere LIKE dai CANDIDATI in target
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-r-2 border-b-2 border-jobtv-teal transform rotate-45 translate-y-1/2"></div>
+                </div>
+              </div>
+              
+              <h2 className="text-3xl font-bold text-white mb-4 mt-6">Promuovi le Tue Offerte di Lavoro</h2>
+              <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
+                Registra il video della tua offerta e raggiungi i candidati più idonei alla tua ricerca in modo innovativo.
+              </p>
             </div>
           </div>
           

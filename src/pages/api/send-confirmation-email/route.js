@@ -99,13 +99,13 @@ router.post('/confirm', async (req, res) => {
 // POST endpoint - Send welcome email
 router.post('/welcome', async (req, res) => {
   try {
-    const { email, name } = req.body;
+    const { email, name, userType } = req.body;
 
     if (!email) {
       return res.status(400).json({ success: false, error: 'Email is required' });
     }
 
-    const emailContent = emailTemplates.welcome(name || email.split('@')[0]);
+    const emailContent = emailTemplates.welcome(name || email.split('@')[0], userType || 'candidate');
     const result = await sendEmail(email, emailContent.subject, emailContent.html);
 
     if (!result.success) {

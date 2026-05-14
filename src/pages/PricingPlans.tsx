@@ -263,43 +263,45 @@ const PricingPlans: React.FC = () => {
             <PlanCard planId="hero" />
           </div>
 
-          {/* FAQ Section */}
-          <div className="max-w-4xl mx-auto mb-16">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4 gradient-text">Domande Frequenti</h2>
-              <p className="text-gray-600 text-lg">Tutto quello che devi sapere sui nostri piani</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[
-                {
-                  question: "Posso cambiare piano in qualsiasi momento?",
-                  answer: "Sì, puoi passare a un piano superiore o inferiore in qualsiasi momento. Il cambiamento sarà effettivo dal prossimo ciclo di fatturazione."
-                },
-                {
-                  question: "Quali metodi di pagamento accettate?",
-                  answer: "Accettiamo tutte le principali carte di credito, PayPal e bonifici bancari per piani annuali."
-                },
-                {
-                  question: "È previsto un periodo di prova gratuito?",
-                  answer: "Sì, tutti i nuovi utenti possono usufruire di una prova gratuita di 14 giorni su qualsiasi piano."
-                },
-                {
-                  question: "Come funziona l'annullamento?",
-                  answer: "Puoi annullare il tuo abbonamento in qualsiasi momento con un semplice clic. Continuerai a usufruire del servizio fino alla fine del periodo pagato."
-                }
-              ].map((faq, index) => (
-                <Card key={index} className="p-6 hover:shadow-lg transition-all duration-300 group">
-                  <h3 className="font-semibold text-lg mb-3 text-gray-900 group-hover:text-jobtv-teal transition-colors">
-                    {faq.question}
-                  </h3>
-                  <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
-                </Card>
-              ))}
-            </div>
-          </div>
-
           {/* CTA Section */}
+          <div className="text-center mb-16">
+            <Card className="max-w-4xl mx-auto p-8 bg-gradient-to-br from-jobtv-teal/5 to-jobtv-blue/5 border-jobtv-teal/20">
+              <CardContent className="p-0">
+                <div className="text-center mb-6">
+                  <h3 className="text-3xl font-bold mb-4 gradient-text">Hai bisogno di aiuto?</h3>
+                  <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+                    Il nostro team di esperti è qui per aiutarti a scegliere il piano migliore per le tue esigenze specifiche.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <Button size="lg" className="jobtv-button px-8 py-4">
+                    <HelpCircle className="mr-2 h-5 w-5" />
+                    Contatta il Supporto
+                  </Button>
+                  <Button variant="outline" size="lg" className="px-8 py-4 rounded-xl border-2">
+                    <ArrowRight className="mr-2 h-5 w-5" />
+                    Scopri le Funzionalità
+                  </Button>
+                </div>
+
+                <div className="mt-8 flex items-center justify-center space-x-6 text-gray-600">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm">Supporto via email</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm">Supporto via chat</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm">Supporto telefonico</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
           <div className="text-center mb-16">
             <Card className="max-w-4xl mx-auto p-8 bg-gradient-to-br from-jobtv-teal/5 to-jobtv-blue/5 border-jobtv-teal/20">
               <CardContent className="p-0">

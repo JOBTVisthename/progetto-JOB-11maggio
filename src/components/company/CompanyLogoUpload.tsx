@@ -19,6 +19,10 @@ export default function CompanyLogoUpload({
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    setPreview(currentLogo);
+  }, [currentLogo]);
+
   const handleFileSelect = (file: File) => {
     // Create preview
     const reader = new FileReader();
