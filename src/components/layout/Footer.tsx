@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Mail, MapPin, Phone, MessageCircle, Instagram } from "lucide-react";
+import GuidedChatBot from "@/components/ui/GuidedChatBot";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -190,6 +191,8 @@ export default function Footer() {
           </div>
         </div>
       </div>
+
+      <GuidedChatBot />
     </footer>
   );
 }

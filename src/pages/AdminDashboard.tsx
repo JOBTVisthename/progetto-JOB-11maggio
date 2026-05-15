@@ -226,14 +226,13 @@ const AdminDashboard = () => {
     const candidateMap = new Map(candidateProfiles?.map(p => [p.id, p]) || []);
     const companyMap = new Map(companyProfiles?.map(p => [p.id, p]) || []);
 
-    // Usiamo un ciclo normale per evitare errori asincroni nel forEach
-    for (const user of allUsers) {
+    allUsers.forEach(user => {
       if (user.user_type === 'candidate') {
         (user as any).candidate_profiles = candidateMap.get(user.id) || null;
       } else if (user.user_type === 'company') {
         (user as any).company_profiles = companyMap.get(user.id) || null;
       }
-    }
+    });
 
     console.log(`✅ Attached ${candidateMap.size} candidate profiles and ${companyMap.size} company profiles`);
 

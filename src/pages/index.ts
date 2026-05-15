@@ -1,1 +1,0 @@
-// Questo file è intenzionalmente vuoto per evitare conflitti con le Edge Functions di Supabase.

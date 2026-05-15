@@ -252,7 +252,17 @@ export default function CandidateProfile() {
 
       if (uploadError) throw uploadError;
 
-      setProfileImageUrl(fileName);
+      const { data: { publicUrl } } = supabase.storage
+        .from("candidate-photos")
+        .getPublicUrl(fileName);
+
+      setProfileImageUrl(publicUrl);
+
+      // Update database immediately to persist the link
+      await supabase
+        .from("candidate_profiles")
+        .update({ profile_image_url: publicUrl })
+        .eq("id", user.id);
 
       toast({
         title: "Foto caricata",
@@ -270,8 +280,12 @@ export default function CandidateProfile() {
     }
   };
 
-  const handleRemovePhoto = () => {
+  const handleRemovePhoto = async () => {
     setProfileImageUrl("");
+    await supabase
+      .from("candidate_profiles")
+      .update({ profile_image_url: null })
+      .eq("id", user?.id);
     toast({
       title: "Foto rimossa",
       description: "La foto profilo è stata rimossa",
@@ -302,7 +316,17 @@ export default function CandidateProfile() {
 
       if (uploadError) throw uploadError;
 
-      setCvUrl(fileName);
+      const { data: { publicUrl } } = supabase.storage
+        .from("candidate-cvs")
+        .getPublicUrl(fileName);
+
+      setCvUrl(publicUrl);
+
+      // Update database immediately to persist the link
+      await supabase
+        .from("candidate_profiles")
+        .update({ cv_url: publicUrl })
+        .eq("id", user.id);
 
       toast({
         title: "CV caricato",
@@ -320,8 +344,12 @@ export default function CandidateProfile() {
     }
   };
 
-  const handleRemoveCv = () => {
+  const handleRemoveCv = async () => {
     setCvUrl("");
+    await supabase
+      .from("candidate_profiles")
+      .update({ cv_url: null })
+      .eq("id", user?.id);
     toast({
       title: "CV rimosso",
       description: "Il curriculum è stato rimosso",
@@ -423,13 +451,17 @@ export default function CandidateProfile() {
 
       if (uploadError) throw uploadError;
 
+      const { data: { publicUrl } } = supabase.storage
+        .from("videos")
+        .getPublicUrl(fileName);
+
       // Save to database
       const { error: dbError } = await supabase
         .from("video_interviews")
         .insert({
           candidate_id: user.id,
           title,
-          video_url: fileName,
+          video_url: publicUrl,
           thumbnail_url: null,
         });
 
@@ -1145,21 +1177,24 @@ export default function CandidateProfile() {
                           onChange={handleCvUpload}
                         />
                         <Button
+                          asChild
                           onClick={() => cvInputRef.current?.click()}
                           disabled={uploadingCv}
                           className="bg-gradient-to-r from-jobtv-teal to-jobtv-green hover:opacity-90"
                         >
-                          {uploadingCv ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Caricamento...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-4 h-4 mr-2" />
-                              Carica CV
-                            </>
-                          )}
+                          <span>
+                            {uploadingCv ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Caricamento...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-4 h-4 mr-2" />
+                                Carica CV
+                              </>
+                            )}
+                          </span>
                         </Button>
                       </label>
                     </div>

@@ -1,4 +1,4 @@
-import { CheckCircle2, Users, Video, Clock, Heart, MessageSquare, Zap, Shield, TrendingUp } from "lucide-react";
+import { Video, Clock, Heart, MessageSquare, Zap, Shield } from "lucide-react";
 
 export default function Features() {
   const features = [
@@ -46,47 +46,9 @@ export default function Features() {
     }
   ];
 
-  const stats = [
-    { value: "95%", label: "Match Rate", icon: <TrendingUp className="h-4 w-4" /> },
-    { value: "50%", label: "Tempo Risparmiato", icon: <Clock className="h-4 w-4" /> },
-    { value: "1000+", label: "Candidati Attivi", icon: <Users className="h-4 w-4" /> },
-    { value: "500+", label: "Aziende Partner", icon: <CheckCircle2 className="h-4 w-4" /> }
-  ];
-  
   return (
     <section className="section-padding bg-gradient-to-b from-white to-gray-50/50">
       <div className="container mx-auto container-padding">
-        {/* Header */}
-        <div className="text-center max-w-4xl mx-auto mb-20 animate-fade-in">
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-jobtv-teal/10 border border-jobtv-teal/20 text-jobtv-teal text-sm font-medium mb-6">
-            <Zap className="w-4 h-4 mr-2" />
-            Funzionalità Principali
-          </div>
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 gradient-text text-balance">
-            Come Funziona JobTV
-          </h2>
-          <p className="text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto text-balance">
-            Innoviamo il processo di ricerca e selezione del personale con un approccio moderno, 
-            efficace basato sulla tecnologia video e algoritmi intelligenti
-          </p>
-        </div>
-
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
-          {stats.map((stat, index) => (
-            <div 
-              key={index} 
-              className="text-center p-6 rounded-2xl bg-white shadow-md card-hover animate-slide-up"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className="flex justify-center mb-3 text-jobtv-teal">
-                {stat.icon}
-              </div>
-              <div className="text-3xl font-bold gradient-text mb-1">{stat.value}</div>
-              <div className="text-sm text-gray-600 font-medium">{stat.label}</div>
-            </div>
-          ))}
-        </div>
         
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

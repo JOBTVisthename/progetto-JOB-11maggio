@@ -83,6 +83,19 @@ const CreateJobOffer: React.FC = () => {
   const jobTitle = form.watch('title');
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
 
+  // Ripristino logica predittiva: compila descrizione e skills in base al titolo
+  useEffect(() => {
+    if (jobTitle && jobTitle.length >= 3 && step === 1) {
+      const template = getTemplateByTitle(jobTitle);
+      if (template) {
+        const currentDesc = form.getValues('description');
+        const currentSkills = form.getValues('skills');
+        if (!currentDesc) form.setValue('description', template.description);
+        if (!currentSkills) form.setValue('skills', template.skills.join(', '));
+      }
+    }
+  }, [jobTitle, step, form]);
+
   const onSubmit = async (values: JobOfferFormValues) => {
     if (!user) return;
     

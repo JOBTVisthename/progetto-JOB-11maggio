@@ -14,7 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Video, StopCircle, Check, X, Loader2, Camera, RefreshCcw } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const interviewFormSchema = z.object({
@@ -178,14 +178,14 @@ export default function RecordInterview() {
       setStreamError(errorMsg);
       setVideoDevices([]); // Clear devices list on error
     } finally {
-      setIsRequestingPermission(false); // Ensure flag is reset
+      setIsRequestingPermission(false); // Fix: reset flag
     }
-  }, [selectedDeviceId]);
+  }, [selectedDeviceId]); // Removed stream and isRequestingPermission to prevent loop
   useEffect(() => {
     if (!previewUrl && !stream && !streamError) {
       requestCameraPermission();
     }
-  }, [previewUrl, requestCameraPermission]); 
+  }, [previewUrl, stream, streamError, requestCameraPermission]); 
 
   // useEffect to attach the stream to the video element when stream state changes
   // useEffect to attach the stream to the video element when stream state changes
@@ -287,14 +287,15 @@ export default function RecordInterview() {
     // --- End of MediaRecorder creation ---
 
     mediaRecorderRef.current.ondataavailable = (e) => {
-      if (e.data.size > 0) {
+      if (e.data && e.data.size > 0) {
         chunksRef.current.push(e.data);
       }
     };
 
     mediaRecorderRef.current.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-      setVideoBlob(blob);
+      const blob = new Blob(chunksRef.current, { type: mediaRecorderRef.current?.mimeType || 'video/webm' });
+      const finalBlob = blob.size > 0 ? blob : null;
+      setVideoBlob(finalBlob);
       setPreviewUrl(URL.createObjectURL(blob));
     };
 

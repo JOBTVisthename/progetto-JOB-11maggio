@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Plus, Video, Upload } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import VideoInterviewForm from "@/components/video/VideoInterviewForm";
 import VideoInterviewList from "@/components/video/VideoInterviewList";
 

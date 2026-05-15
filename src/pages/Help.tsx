@@ -438,8 +438,6 @@ const Help: React.FC = () => {
         </div>
       </main>
       
-      <GuidedChatBot />
-      
       <Footer />
     </div>
   );

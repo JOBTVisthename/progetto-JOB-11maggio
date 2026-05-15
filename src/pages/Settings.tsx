@@ -933,12 +933,14 @@ const Settings: React.FC = () => {
                                     className="hidden"
                                     disabled={uploadingPhoto}
                                   />
-                                  <Button variant="outline" size="sm" disabled={uploadingPhoto} as="span">
+                                  <Button variant="outline" size="sm" disabled={uploadingPhoto} asChild>
+                                    <span>
                                     {uploadingPhoto ? (
                                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Caricamento...</>
                                     ) : (
                                       <><Camera className="w-4 h-4 mr-2" /> Carica Foto</>
                                     )}
+                                    </span>
                                   </Button>
                                 </label>
                                 {profileImageUrl && (
@@ -981,12 +983,14 @@ const Settings: React.FC = () => {
                                       className="hidden"
                                       disabled={uploadingCv}
                                     />
-                                    <Button variant="outline" size="sm" disabled={uploadingCv} as="span">
+                                    <Button variant="outline" size="sm" disabled={uploadingCv} asChild>
+                                      <span>
                                       {uploadingCv ? (
                                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sostituzione...</>
                                       ) : (
                                         <><Upload className="w-4 h-4 mr-2" /> Sostituisci CV</>
                                       )}
+                                      </span>
                                     </Button>
                                   </label>
                                 </div>
@@ -1003,12 +1007,14 @@ const Settings: React.FC = () => {
                                     className="hidden"
                                     disabled={uploadingCv}
                                   />
-                                  <Button variant="outline" size="sm" disabled={uploadingCv} as="span">
+                                <Button variant="outline" size="sm" disabled={uploadingCv} asChild>
+                                  <span>
                                     {uploadingCv ? (
                                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Caricamento...</>
                                     ) : (
                                       <><Upload className="w-4 h-4 mr-2" /> Carica CV</>
                                     )}
+                                  </span>
                                   </Button>
                                 </label>
                                 <p className="text-xs text-gray-500 mt-2">PDF, DOC o DOCX. Max 5MB</p>
