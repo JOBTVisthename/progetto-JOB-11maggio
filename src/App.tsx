@@ -16,10 +16,10 @@ import VideoInterview from "./pages/VideoInterview";
 import RecordInterview from "./pages/RecordInterview";
 import Matches from "./pages/Matches";
 import Messages from "./pages/Messages";
-import CandidateSearch from "@/pages/CandidateSearch";
-import PricingPlans from "@/pages/PricingPlans";
-import Settings from "@/pages/Settings";
-import Help from "@/pages/Help";
+import CandidateSearch from "./pages/CandidateSearch";
+import PricingPlans from "./pages/PricingPlans";
+import Settings from "./pages/Settings";
+import Help from "./pages/Help";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import CompanyDashboard from "./pages/CompanyDashboard";
@@ -87,7 +87,14 @@ const App = () => (
             <Route path="/for-candidates" element={<ForCandidates />} />
             <Route path="/for-companies" element={<ForCompanies />} />
             <Route path="/pricing-plans" element={<PricingPlans />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/help" element={<Help />} />
             <Route path="/search-candidates" element={<CandidateSearch />} />
             <Route path="/privacy" element={<Privacy />} />
