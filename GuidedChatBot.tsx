@@ -30,7 +30,15 @@ interface Message {
 
 const GuidedChatBot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
+  // Renamed `isVisible` to `showCompanyOfferPopup` to reflect its current purpose
+  const [showCompanyOfferPopup, setShowCompanyOfferPopup] = useState(() => {
+    // Initialize from local storage, default to true if not found
+    return localStorage.getItem('jobtv_showCompanyOfferPopup') !== 'false';
+  });
+  // New state for the "SEI CANDIDATO?" popup
+  const [showCandidateOfferPopup, setShowCandidateOfferPopup] = useState(() => {
+    return localStorage.getItem('jobtv_showCandidateOfferPopup') !== 'false';
+  });
   const [step, setStep] = useState(0); // 0: initial role selection, 1+: flow specific steps
   const [role, setRole] = useState<Role>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -123,6 +131,14 @@ const GuidedChatBot: React.FC = () => {
     key: "informative_message"
   };
 
+  // Persist popup visibility states to local storage
+  useEffect(() => {
+    localStorage.setItem('jobtv_showCompanyOfferPopup', String(showCompanyOfferPopup));
+  }, [showCompanyOfferPopup]);
+
+  useEffect(() => {
+    localStorage.setItem('jobtv_showCandidateOfferPopup', String(showCandidateOfferPopup));
+  }, [showCandidateOfferPopup]);
   // Carica i dati salvati all'avvio
   useEffect(() => {
     const saved = localStorage.getItem('jobtv_chat_draft');
@@ -152,13 +168,33 @@ const GuidedChatBot: React.FC = () => {
 
   // Handle chat open event from custom event
   useEffect(() => {
-    const handleOpenChatEvent = () => {
+    const handleOpenChatEvent = (event: CustomEvent<{ role?: Role }>) => {
+      setIsOpen(true);
+      if (event.detail?.role) {
+        // If a role is provided, bypass initial selection and start flow directly
+        setRole(event.detail.role);
+        setStep(1); // Start from the first step of the specific flow
+        const flowSteps = event.detail.role === 'candidate' ? candidateFlowSteps : companyFlowSteps;
+        if (flowSteps.length > 0) {
+          sendBotMessage({
+            id: Date.now(),
+            text: flowSteps[0].botMessage,
+            isBot: true,
+            options: flowSteps[0].options,
+            isInput: flowSteps[0].isInput,
+            key: flowSteps[0].key
+          });
+        }
+      } else {
       setIsOpen(true);
       // Messages will be initialized by the other useEffect when isOpen becomes true
+        // If no role is provided, start with initial role selection
+        setMessages([initialBotMessage]);
+      }
     };
-    window.addEventListener('open-jobtv-chat', handleOpenChatEvent);
-    return () => window.removeEventListener('open-jobtv-chat', handleOpenChatEvent);
-  }, []); // Only run once on mount
+    window.addEventListener('open-jobtv-chat', handleOpenChatEvent as EventListener);
+    return () => window.removeEventListener('open-jobtv-chat', handleOpenChatEvent as EventListener);
+  }, [initialBotMessage, candidateFlowSteps, companyFlowSteps]); // Add dependencies
 
   const resetChat = () => {
     setIsOpen(false);
@@ -167,6 +203,7 @@ const GuidedChatBot: React.FC = () => {
     setMessages([]);
     setInputValue('');
     setUserData({});
+    // Do not reset popup visibility here, as they are user-controlled via 'X'
   };
 
   const sendBotMessage = (message: Message) => {
@@ -300,28 +337,65 @@ const GuidedChatBot: React.FC = () => {
     navigate(`/register?${params.toString()}`);
   };*/
 
-  if (!isVisible) return null;
+  // Render the component only if the chat is open OR if at least one popup is visible
+  const shouldRenderPopups = showCompanyOfferPopup || showCandidateOfferPopup;
+  if (!shouldRenderPopups && !isOpen) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50">
+    <div className="fixed bottom-6 right-4 md:bottom-10 md:right-10 z-50">
       {!isOpen ? (
-        <div className="relative group">
-          <Button 
-            onClick={() => setIsOpen(true)}
-            className="w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl bg-jobtv-gradient hover:scale-110 transition-all duration-300"
-          >
-            <MessageCircle className="w-7 h-7 md:w-8 md:h-8 text-white" />
-          </Button>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsVisible(false);
-            }}
-            className="absolute -top-2 -right-2 bg-white border border-gray-200 rounded-full p-1.5 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:border-red-100 hover:text-red-500"
-            title="Chiudi assistente"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+        <div className="flex flex-col items-end space-y-4"> {/* Container for multiple popups */}
+          {showCandidateOfferPopup && (
+            <div className="relative animate-in fade-in slide-in-from-right-4 duration-500">
+              <div
+                className="bg-white border-2 border-jobtv-blue p-5 rounded-lg shadow-2xl max-w-[260px] cursor-pointer hover:border-jobtv-teal transition-all group relative"
+                onClick={() => setIsOpen(true)}
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCandidateOfferPopup(false);
+                  }}
+                  className="absolute -top-3 -right-3 bg-white border-2 border-gray-100 rounded-full p-1.5 shadow-md hover:bg-red-50 hover:text-red-500 transition-all z-10"
+                  title="Chiudi popup"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-jobtv-blue tracking-wider uppercase">Sei un Candidato?</p>
+                  <p className="text-sm font-semibold leading-snug text-gray-800">
+                    CLICCA QUI <span className="text-jobtv-teal font-extrabold underline underline-offset-2">PER TROVARE LAVORO</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showCompanyOfferPopup && (
+            <div className="relative animate-in fade-in slide-in-from-right-4 duration-500">
+              <div
+                className="bg-white border-2 border-jobtv-blue p-5 rounded-lg shadow-2xl max-w-[260px] cursor-pointer hover:border-jobtv-teal transition-all group relative"
+                onClick={() => setIsOpen(true)}
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCompanyOfferPopup(false);
+                  }}
+                  className="absolute -top-3 -right-3 bg-white border-2 border-gray-100 rounded-full p-1.5 shadow-md hover:bg-red-50 hover:text-red-500 transition-all z-10"
+                  title="Chiudi popup"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-jobtv-blue tracking-wider uppercase">Sei un'Azienda?</p>
+                  <p className="text-sm font-semibold leading-snug text-gray-800">
+                    CREA LA TUA OFFERTA DI LAVORO <span className="text-jobtv-teal font-extrabold underline underline-offset-2">CLICCANDO QUI</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-2xl shadow-2xl w-[280px] sm:w-[320px] md:w-[380px] flex flex-col overflow-hidden border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-300 max-h-[85vh]">
