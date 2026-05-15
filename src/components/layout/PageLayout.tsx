@@ -1,5 +1,6 @@
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import Header from "./Header";
 import Footer from "./Footer";
 
@@ -9,6 +10,13 @@ interface PageLayoutProps {
 }
 
 export default function PageLayout({ children, withoutPadding = false }: PageLayoutProps) {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    // Forza lo scroll all'inizio della pagina ogni volta che il percorso cambia
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />

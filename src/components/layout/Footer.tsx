@@ -3,8 +3,6 @@ import { Mail, MapPin, Phone, MessageCircle, Instagram } from "lucide-react";
 import GuidedChatBot from "@/components/ui/GuidedChatBot";
 
 export default function Footer() {
-  const currentYear = new Date().getFullYear();
-  
   return (
     <footer className="bg-gradient-to-b from-gray-50 to-white pt-16 pb-8 border-t border-gray-200">
       <div className="container container-padding">
@@ -181,7 +179,7 @@ export default function Footer() {
         <div className="border-t border-gray-200 mt-16 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-gray-500 text-sm">
-              © {currentYear} JobTV. Tutti i diritti riservati.
+              © 2026 JobTV. Tutti i diritti riservati.
             </p>
             <div className="flex items-center space-x-6 text-sm text-gray-500">
               <span>Made with ❤️ in Italy</span>

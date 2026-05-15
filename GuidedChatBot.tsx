@@ -86,6 +86,24 @@ const GuidedChatBot: React.FC = () => {
       { text: "Sono alla prima esperienza", value: "Sono alla prima esperienza" },
       { text: "Ho fatto uno stage", value: "Ho fatto uno stage" }
     ], key: "experience_level" },
+    { botMessage: "Qual è il tuo titolo di studio più recente?", options: [
+      { text: "Diploma", value: "Diploma" },
+      { text: "Laurea", value: "Laurea" },
+      { text: "Master / PhD", value: "Master" },
+      { text: "Altro", value: "Altro" }
+    ], key: "education_level" },
+    { botMessage: "Che modalità di lavoro preferiresti?", options: [
+      { text: "In presenza", value: "In presenza" },
+      { text: "Ibrido (Smart Working)", value: "Ibrido" },
+      { text: "Full Remote", value: "Remote" },
+      { text: "Indifferente", value: "Indifferente" }
+    ], key: "work_preference" },
+    { botMessage: "Qual è il tuo preavviso attuale?", options: [
+      { text: "Immediato (Disponibile subito)", value: "Immediato" },
+      { text: "15 giorni", value: "15gg" },
+      { text: "30 giorni", value: "30gg" },
+      { text: "60+ giorni", value: "60gg" }
+    ], key: "notice_period" },
     { botMessage: "Ottimo! 🎯 Ho già trovato aziende che potrebbero fare al caso tuo nella tua zona! Registrati gratis in 2 minuti, carica il tuo video di presentazione e ricevi subito i tuoi match. Le aziende ti contatteranno direttamente!", options: [
       { text: "Registrati gratis →", value: "register_candidate", action: "register" }
     ], key: "final_candidate_message" }
@@ -117,6 +135,24 @@ const GuidedChatBot: React.FC = () => {
       { text: "Minimo 3-5 anni", value: "Minimo 3-5 anni" },
       { text: "Senior 5+ anni", value: "Senior 5+ anni" }
     ], key: "experience_level_company" },
+    { botMessage: "Che tipo di realtà rappresenti?", options: [
+      { text: "Startup", value: "Startup" },
+      { text: "PMI (Piccola/Media Impresa)", value: "PMI" },
+      { text: "Grande Azienda / Gruppo", value: "Enterprise" },
+      { text: "Agenzia di Recruiting", value: "Agency" }
+    ], key: "company_type" },
+    { botMessage: "Qual è il budget RAL (Reddito Annuo Lordo) previsto per questa posizione?", options: [
+      { text: "Sotto i 25k", value: "<25k" },
+      { text: "25k - 35k", value: "25-35k" },
+      { text: "35k - 50k", value: "35-50k" },
+      { text: "Oltre 50k", value: ">50k" }
+    ], key: "salary_budget" },
+    { botMessage: "Entro quanto tempo vorreste inserire la risorsa?", options: [
+      { text: "Subito (Urgente)", value: "Urgente" },
+      { text: "Entro 1 mese", value: "1 mese" },
+      { text: "Entro 3 mesi", value: "3 mesi" },
+      { text: "Solo scouting preventivo", value: "Scouting" }
+    ], key: "hiring_timeline" },
     { botMessage: "Perfetto! 🚀 Abbiamo già candidati nella tua zona che cercano esattamente questo ruolo! Per scoprire i profili, vedere i loro video di presentazione e contattarli direttamente, registra la tua azienda e pubblica l'offerta. È gratis per iniziare!", options: [
       { text: "Registra la tua azienda →", value: "register_company", action: "register" }
     ], key: "final_company_message" }

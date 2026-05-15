@@ -17,7 +17,7 @@ const ForCompanies = () => {
   
   return (
     <PageLayout>
-      <div className="container mx-auto px-4 py-10">
+      <div className="container mx-auto px-4 py-10 pb-32"> {/* Aggiunto pb-32 per evitare sovrapposizione chat */}
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-3xl md:text-4xl font-bold mb-4">Per le Aziende</h1>
@@ -50,8 +50,11 @@ const ForCompanies = () => {
                 </ul>
                 
                 <div className="mt-8">
-                  <Button asChild className="bg-white text-jobtv-blue hover:bg-gray-100">
-                    <Link to="/register">Inizia Ora</Link>
+                  <Button asChild className="bg-white text-jobtv-blue hover:bg-gray-100 h-auto py-4 px-6 text-left flex flex-col items-start rounded-lg shadow-xl group border-2 border-jobtv-teal animate-pulse">
+                    <Link to="/create-job-offer">
+                      <span className="text-xs font-bold opacity-70 uppercase mb-1">Sei un'Azienda?</span>
+                      <span className="text-sm md:text-base font-extrabold leading-tight">CREA LA TUA OFFERTA DI LAVORO <span className="underline decoration-2 underline-offset-4 group-hover:text-jobtv-teal transition-colors">CLICCANDO QUI</span></span>
+                    </Link>
                   </Button>
                 </div>
               </div>

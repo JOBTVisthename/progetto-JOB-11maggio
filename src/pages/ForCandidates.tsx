@@ -33,7 +33,7 @@ const ForCandidates = () => {
   
   return (
     <PageLayout>
-      <div className="container mx-auto px-4 py-10">
+      <div className="container mx-auto px-4 py-10 pb-32"> {/* Aggiunto pb-32 per evitare sovrapposizione chat */}
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-3xl md:text-4xl font-bold mb-4">Per i Candidati</h1>
@@ -57,8 +57,10 @@ const ForCandidates = () => {
                 </ul>
                 
                 <div className="mt-8">
-                  <Button asChild className="bg-white text-jobtv-blue hover:bg-gray-100">
-                    <Link to="/register">Inizia Ora</Link>
+                  <Button asChild className="bg-white text-jobtv-blue hover:bg-gray-100 h-auto py-4 px-6 text-left flex flex-col items-start rounded-lg shadow-
+                      <span className="text-xs font-bold opacity-70 uppercase mb-1">Sei un Candidato?</span>
+                      <span className="text-sm md:text-base font-extrabold leading-tight uppercase">CLICCA QUI</span>
+                    </Link>
                   </Button>
                 </div>
               </div>

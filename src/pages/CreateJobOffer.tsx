@@ -15,12 +15,20 @@ import {
   Sparkles, 
   Video,
   Save,
-  Rocket
+  Rocket,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
@@ -57,6 +65,8 @@ const CreateJobOffer: React.FC = () => {
   const [step, setStep] = useState(1);
   const [showEncouragement, setShowEncouragement] = useState(false);
   const [showFinalPopup, setShowFinalPopup] = useState(false);
+  const [isRewriting, setIsRewriting] = useState(false);
+  const [tone, setTone] = useState<'formal' | 'creative' | 'friendly'>('formal');
   const totalSteps = 4;
 
   const form = useForm<JobOfferFormValues>({
@@ -88,13 +98,78 @@ const CreateJobOffer: React.FC = () => {
     if (jobTitle && jobTitle.length >= 3 && step === 1) {
       const template = getTemplateByTitle(jobTitle);
       if (template) {
-        const currentDesc = form.getValues('description');
-        const currentSkills = form.getValues('skills');
-        if (!currentDesc) form.setValue('description', template.description);
-        if (!currentSkills) form.setValue('skills', template.skills.join(', '));
+        const values = form.getValues();
+        
+        // Riempie descrizione e competenze se vuote
+        if (!values.description) form.setValue('description', template.description);
+        if (!values.skills) form.setValue('skills', template.skills.join(', '));
+        
+        // Estendiamo il riempimento anche ai campi dello Step 3 se definiti nel template
+        // Nota: Assumiamo che l'oggetto template possa contenere questi campi opzionali
+        const extendedTemplate = template as any;
+        if (!values.salary_range && extendedTemplate.salary_range) {
+          form.setValue('salary_range', extendedTemplate.salary_range);
+        }
+        if (extendedTemplate.contract_type) {
+          form.setValue('contract_type', extendedTemplate.contract_type);
+        }
       }
     }
   }, [jobTitle, step, form]);
+
+  const handleAiRewrite = async () => {
+    const currentDescription = form.getValues('description');
+    if (!currentDescription || currentDescription.length < 10) {
+      toast({
+        title: "Testo troppo breve",
+        description: "Scrivi almeno una bozza della descrizione per poterla migliorare con l'AI.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsRewriting(true);
+    // Simula ritardo computazione AI
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    const bulletPoints = currentDescription.split('\n').filter(line => line.trim()).map(line => `• ${line.trim()}`).join('\n');
+    let improvedDescription = '';
+
+    switch (tone) {
+      case 'creative':
+        improvedDescription = `🚀 Sei pronto per una nuova sfida? Stiamo cercando un talentuoso ${jobTitle || 'professionista'} per unirsi al nostro team dinamico!
+
+Cosa farai con noi:
+${bulletPoints}
+
+Siamo un'azienda che valorizza l'innovazione e la creatività. Se vuoi lasciare il segno, sei nel posto giusto!`;
+        break;
+      case 'friendly':
+        improvedDescription = `Ciao! 👋 Stiamo cercando un nuovo collega come ${jobTitle || 'collaboratore'} da inserire nel nostro team.
+
+Ecco di cosa ti occuperai:
+${bulletPoints}
+
+Siamo un gruppo affiatato e non vediamo l'ora di conoscerti. Se hai voglia di metterti in gioco in un ambiente sereno, scrivici!`;
+        break;
+      case 'formal':
+      default:
+        improvedDescription = `Siamo alla ricerca di un profilo altamente qualificato per ricoprire la posizione di ${jobTitle || 'collaboratore'}. 
+
+Principali mansioni e responsabilità:
+${bulletPoints}
+
+Il candidato ideale possiede eccellenti capacità organizzative e un forte orientamento ai risultati. Si offre inserimento in un contesto professionale e strutturato.`;
+        break;
+    }
+
+    form.setValue('description', improvedDescription);
+    setIsRewriting(false);
+    toast({
+      title: "Ottimizzazione completata ✨",
+      description: `Testo ottimizzato con tono ${tone === 'formal' ? 'formale' : tone === 'creative' ? 'creativo' : 'amichevole'}.`,
+    });
+  };
 
   const onSubmit = async (values: JobOfferFormValues) => {
     if (!user) return;
@@ -181,7 +256,36 @@ const CreateJobOffer: React.FC = () => {
                       <h2 className="text-xl font-bold">Descrizione e Competenze</h2>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="description">Mansioni e Responsabilità</Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="description">Mansioni e Responsabilità</Label>
+                        <div className="flex items-center gap-2">
+                          <Select value={tone} onValueChange={(v: any) => setTone(v)}>
+                            <SelectTrigger className="w-[130px] h-8 text-xs border-gray-200">
+                              <SelectValue placeholder="Tono" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="formal">Formale</SelectItem>
+                              <SelectItem value="creative">Creativo</SelectItem>
+                              <SelectItem value="friendly">Amichevole</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button 
+                            type="button"
+                            variant="outline" 
+                            size="sm" 
+                            onClick={handleAiRewrite}
+                            disabled={isRewriting}
+                            className="text-xs h-8 border-jobtv-teal text-jobtv-teal hover:bg-jobtv-teal/5 gap-1.5"
+                          >
+                            {isRewriting ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Sparkles className="w-3.5 h-3.5" />
+                            )}
+                            Migliora con AI
+                          </Button>
+                        </div>
+                      </div>
                       <Textarea 
                         id="description"
                         rows={6}
