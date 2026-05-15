@@ -305,10 +305,10 @@ const CreateJobOffer: React.FC = () => {
 
       {/* MODALE INCORAGGIAMENTO */}
       <Dialog open={showEncouragement} onOpenChange={setShowEncouragement}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-sm sm:left-auto sm:right-6 sm:top-6 sm:translate-x-0 sm:translate-y-0 bg-white/95 backdrop-blur-md shadow-2xl border-jobtv-blue/10 border-l-4 border-l-jobtv-teal">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-yellow-500" />
+              <Sparkles className="w-5 h-5 text-jobtv-teal" />
               Ottima scelta!
             </DialogTitle>
             <DialogDescription className="py-2 text-lg">
@@ -325,31 +325,31 @@ const CreateJobOffer: React.FC = () => {
 
       {/* POPUP FINALE DI CONVERSIONE */}
       <Dialog open={showFinalPopup} onOpenChange={(val) => !val && navigate('/company/dashboard')}>
-        <DialogContent className="sm:max-w-lg p-0 overflow-hidden border-0">
-          <div className="bg-jobtv-gradient p-8 text-white text-center">
-            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm border border-white/30">
-              <CheckCircle2 className="w-10 h-10 text-white" />
+        <DialogContent className="sm:max-w-sm sm:left-auto sm:right-6 sm:top-24 sm:translate-x-0 sm:translate-y-0 p-6 bg-white/95 backdrop-blur-md shadow-2xl border border-gray-100">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-jobtv-gradient rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <CheckCircle2 className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-3xl font-bold mb-4">OFFERTA PUBBLICATA!</h2>
-            <p className="text-xl font-medium mb-6 leading-relaxed">
+            <h2 className="text-2xl font-bold mb-2 gradient-text uppercase tracking-tight">Offerta Pubblicata!</h2>
+            <p className="text-lg font-medium mb-6 leading-relaxed text-gray-700">
               Vuoi trovare il candidato ideale ancora più velocemente?
             </p>
-            <div className="bg-white/10 p-4 rounded-xl mb-8 border border-white/20">
-              <p className="text-lg font-bold">
-                🎥 ORA REGISTRA VIDEO e OTTIENI IL 95% di visibilità e certezza di trovare il candidato!
+            <div className="bg-jobtv-teal/5 p-4 rounded-xl mb-8 border border-jobtv-teal/10">
+              <p className="text-sm font-bold text-jobtv-blue">
+                🎥 ORA REGISTRA UN VIDEO e aumenta del 95% la visibilità del tuo annuncio!
               </p>
             </div>
             <div className="space-y-3">
               <Button 
                 onClick={() => navigate('/record-interview')} 
-                className="w-full bg-white text-jobtv-blue hover:bg-gray-100 text-lg py-6 font-bold"
+                className="w-full bg-jobtv-gradient text-white text-lg py-6 font-bold shadow-md hover:opacity-90"
               >
                 REGISTRA VIDEO AZIENDALE <Video className="w-5 h-5 ml-2" />
               </Button>
               <Button 
-                variant="ghost" 
+                variant="outline" 
                 onClick={() => navigate('/company/dashboard')}
-                className="text-white hover:text-white/80"
+                className="w-full border-gray-200 text-gray-500"
               >
                 Vai alla Dashboard per ora
               </Button>

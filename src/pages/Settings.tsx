@@ -123,6 +123,8 @@ const Settings: React.FC = () => {
         if (data.user_type === 'candidate') {
           fetchCandidateProfile();
         }
+      } else {
+        console.warn("Profilo non trovato per l'utente:", user.id);
       }
       setLoadingUserType(false);
     };
@@ -726,25 +728,31 @@ const Settings: React.FC = () => {
                   <Loader2 className="w-8 h-8 animate-spin text-jobtv-teal" />
                 </div>
               ) : userType === 'company' ? (
-                <>
-                  {/* Company Profile Card */}
-                  <Card className="border-jobtv-blue/20 shadow-xl">
-                    <CardHeader className="bg-gradient-to-r from-jobtv-blue/10 to-jobtv-teal/10">
-                      <CardTitle className="flex items-center space-x-2">
-                        <Building2 className="w-5 h-5 text-jobtv-blue" />
-                        <span>Profilo Azienda</span>
-                      </CardTitle>
-                      <CardDescription>
-                        Gestisci le informazioni della tua azienda
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6 pt-6">
-                      <CompanyLogoUpload
-                        currentLogo={companyProfile?.logo_url || null}
-                        onUpload={uploadLogo}
-                        onRemove={removeLogo}
-                        uploading={profileUpdating}
-                      />
+                <Card className="border-jobtv-blue/20 shadow-xl">
+                  {/* Mostriamo un loader interno se stiamo caricando i dati specifici, 
+                      ma manteniamo la struttura della Card visibile */}
+                  {profileLoading ? (
+                    <CardContent className="py-12 flex justify-center">
+                      <Loader2 className="w-6 h-6 animate-spin text-jobtv-blue" />
+                    </CardContent>
+                  ) : (
+                    <>
+                      <CardHeader className="bg-gradient-to-r from-jobtv-blue/10 to-jobtv-teal/10">
+                        <CardTitle className="flex items-center space-x-2">
+                          <Building2 className="w-5 h-5 text-jobtv-blue" />
+                          <span>Profilo Azienda</span>
+                        </CardTitle>
+                        <CardDescription>
+                          Gestisci le informazioni della tua azienda
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6 pt-6">
+                        <CompanyLogoUpload
+                          currentLogo={companyProfile?.logo_url || null}
+                          onUpload={uploadLogo}
+                          onRemove={removeLogo}
+                          uploading={profileUpdating}
+                        />
 
                       <div className="space-y-2">
                         <Label htmlFor="companyName">Nome Azienda *</Label>
@@ -891,17 +899,18 @@ const Settings: React.FC = () => {
                         <p className="text-xs text-gray-500">L'email non può essere modificata</p>
                       </div>
                     </CardContent>
-                  </Card>
-                </>
+                    </>
+                  )}
+                </Card>
               ) : userType === 'candidate' ? (
-                <>
+                <Card className="border-jobtv-teal/20 shadow-xl">
                   {/* Candidate Profile Card */}
                   {loadingCandidate ? (
-                    <div className="flex justify-center py-12">
+                    <CardContent className="py-12 flex justify-center">
                       <Loader2 className="w-8 h-8 animate-spin text-jobtv-teal" />
-                    </div>
+                    </CardContent>
                   ) : (
-                    <Card className="border-jobtv-teal/20 shadow-xl">
+                    <>
                       <CardHeader className="bg-gradient-to-r from-jobtv-teal/10 to-jobtv-green/10">
                         <CardTitle className="flex items-center space-x-2">
                           <User className="w-5 h-5 text-jobtv-teal" />
@@ -1166,10 +1175,17 @@ const Settings: React.FC = () => {
                           </div>
                         </div>
                       </CardContent>
-                    </Card>
+                    </>
                   )}
-                </>
-              ) : null}
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center text-gray-500">
+                    <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                    <p>Impossibile caricare il tipo di profilo.</p>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card>
                 <CardHeader>
@@ -1524,12 +1540,12 @@ const Settings: React.FC = () => {
           </Tabs>
 
           {/* Save Button */}
-          {activeTab !== 'security' && activeTab !== 'privacy' && (
+          {activeTab === 'profile' && !loadingUserType && (
             <div className="mt-8 text-center">
               <Button
                 onClick={handleSave}
                 size="lg"
-                disabled={saving}
+                disabled={saving || profileLoading || loadingCandidate}
                 className="bg-jobtv-gradient hover:opacity-90 px-8 py-4"
               >
                 {saving ? (
@@ -1547,7 +1563,7 @@ const Settings: React.FC = () => {
 
       {/* Delete Account Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-sm sm:left-auto sm:right-6 sm:top-6 sm:translate-x-0 sm:translate-y-0 bg-white/95 backdrop-blur-md shadow-2xl border-red-100">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-red-600 flex items-center">
               <AlertTriangle className="w-6 h-6 mr-2" />
