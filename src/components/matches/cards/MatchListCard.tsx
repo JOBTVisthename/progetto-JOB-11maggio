@@ -13,7 +13,7 @@ interface MatchListCardProps {
   match: any;
   userType: 'candidate' | 'company' | null;
   onLikeToggle: (matchId: string, liked: boolean) => void;
-  setMatches: (matches: any[]) => void;
+  setMatches?: (matches: any[]) => void;
 }
 
 export default function MatchListCard({ match, userType, onLikeToggle, setMatches }: MatchListCardProps) {

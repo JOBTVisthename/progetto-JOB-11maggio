@@ -77,7 +77,7 @@ export default function MessageList({ matchId, otherUser, userType }: MessageLis
     try {
       const { error } = await supabase
         .from("messages")
-        .update({ is_read: true })
+        .update({ is_read: true, job_matching_id: matchId } as any)
         .in("id", messageIds);
 
       if (error) throw error;

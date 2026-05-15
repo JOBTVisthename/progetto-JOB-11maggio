@@ -16,7 +16,7 @@ export async function toggleLike(
     
     const { error } = await supabase
       .from("job_matching")
-      .update({ [updateField]: liked })
+      .update({ [updateField]: liked } as any)
       .eq("id", matchId);
       
     if (error) throw error;
@@ -117,7 +117,7 @@ export async function markMessagesAsRead(
   try {
     const { error } = await supabase
       .from("messages")
-      .update({ is_read: true })
+      .update({ is_read: true, job_matching_id: matchId })
       .eq("job_matching_id", matchId)
       .neq("sender_id", recipientId)
       .eq("is_read", false);

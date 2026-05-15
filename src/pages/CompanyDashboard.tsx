@@ -34,6 +34,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Database } from "@/integrations/supabase/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 // Types for our dashboard data
 type MatchingStats = {
@@ -68,6 +69,7 @@ type JobOffer = {
 const CompanyDashboard = () => {
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
+    const [showNewOfferPopup, setShowNewOfferPopup] = useState(false);
     const [stats, setStats] = useState<MatchingStats>({
         total: 0,
         liked: 0,
@@ -224,17 +226,41 @@ const CompanyDashboard = () => {
         <PageLayout>
             <div className="min-h-screen bg-gray-50/50 pb-12">
                 <div className="container mx-auto px-4 py-8">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                    <Dialog open={showNewOfferPopup} onOpenChange={setShowNewOfferPopup}>
+                        <DialogContent className="sm:max-w-sm bg-white/95 backdrop-blur-md shadow-2xl border border-gray-100">
+                            <DialogHeader>
+                                <DialogTitle className="text-center">Nuova Offerta</DialogTitle>
+                                <DialogDescription className="text-center">
+                                    CLICCA QUI E METTI ANNUNCIO
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid grid-cols-1 gap-3 mt-2">
+                                <Button
+                                    className="w-full bg-jobtv-gradient text-white shadow-lg hover:scale-105 transition-all duration-300"
+                                    onClick={() => {
+                                        setShowNewOfferPopup(false);
+                                        window.location.href = "/create-job-offer";
+                                    }}
+                                >
+                                    Vai a pubblicare
+                                </Button>
+                                <Button variant="outline" className="w-full" onClick={() => setShowNewOfferPopup(false)}>
+                                    Annulla
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard Aziendale</h1>
                             <p className="text-gray-500 mt-2">Bentornato! Ecco le performance delle tue attività di recruiting.</p>
                         </div>
                         <div className="mt-4 md:mt-0 flex space-x-3">
-                            <Button asChild className="bg-jobtv-gradient text-white border-0 shadow-lg hover:scale-105 transition-all duration-300">
-                                <Link to="/create-job-offer">
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Nuova Offerta
-                                </Link>
+                            <Button
+                                className="bg-jobtv-gradient text-white border-0 shadow-lg hover:scale-105 transition-all duration-300"
+                                onClick={() => setShowNewOfferPopup(true)}
+                            >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Nuova Offerta
                             </Button>
                             <Button asChild className="bg-jobtv-gradient text-white border-0">
                                 <Link to="/search-candidates">
