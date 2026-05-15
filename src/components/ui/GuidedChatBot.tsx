@@ -18,6 +18,7 @@ const GuidedChatBot: React.FC = () => {
   const [role, setRole] = useState<Role>(null);
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, text: "Ciao! Benvenuto su JobTV. Come posso aiutarti oggi?", isBot: true },
+    { id: 1, text: "Benvenuto nel Centro Assistenza JobTV! Sono qui per guidarti nella configurazione del tuo profilo.", isBot: true },
     { id: 2, text: "Sei un candidato in cerca di lavoro o un'azienda che cerca talenti?", isBot: true }
   ]);
   const [inputValue, setInputValue] = useState('');
