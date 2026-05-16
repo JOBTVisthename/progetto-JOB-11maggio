@@ -3,13 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MessageCircle, X, Send, User, Building2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 type Role = 'candidate' | 'company' | null;
 
 interface Option {
   text: string;
   value: string;
-  action?: 'register' | 'backToMain';
+  action?: 'register' | 'backToMain' | 'navigate';
+  path?: string;
 }
 
 interface StepDefinition {
@@ -28,8 +31,197 @@ interface Message {
   key?: string; // To link message to a step for input handling
 }
 
+// Define conversation steps outside to prevent re-creation on every render
+const initialBotMessage: Message = {
+  id: 1,
+  text: "Ciao! 👋 Sono JOBBOLO, il tuo assistente di lavoro! Sei un candidato o un'azienda?",
+  isBot: true,
+  options: [
+    { text: "Cerco lavoro", value: "candidate" },
+    { text: "Sono un'azienda", value: "company" }
+  ],
+  key: "role_selection"
+};
+
+const candidateFlowSteps: StepDefinition[] = [
+  { botMessage: "Fantastico! 🎯 Iniziamo subito a trovare il posto giusto per te. Che tipo di lavoro stai cercando?", options: [
+    { text: "Operaio/Produzione", value: "Operaio/Produzione" },
+    { text: "Ufficio/Amministrazione", value: "Ufficio/Amministrazione" },
+    { text: "Commerciale/Vendite", value: "Commerciale/Vendite" },
+    { text: "Informatica/Tech", value: "Informatica/Tech" },
+    { text: "Altro...", value: "Altro" }
+  ], key: "job_type" },
+  { botMessage: "In quale città o zona vorresti lavorare?", isInput: true, key: "location" },
+  { botMessage: "Che tipo di contratto preferisci?", options: [
+    { text: "Tempo indeterminato", value: "Tempo indeterminato" },
+    { text: "Tempo determinato", value: "Tempo determinato" },
+    { text: "Part-time", value: "Part-time" },
+    { text: "Stage/Tirocinio", value: "Stage/Tirocinio" },
+    { text: "Non ho preferenze", value: "Non ho preferenze" }
+  ], key: "contract_type" },
+  { botMessage: "Sei disposto a spostarti dalla tua città?", options: [
+    { text: "Sì, anche in tutta Italia", value: "Sì, anche in tutta Italia" },
+    { text: "Solo provincia", value: "Solo provincia" },
+    { text: "Max 30 km", value: "Max 30 km" },
+    { text: "No, solo nella mia città", value: "No, solo nella mia città" }
+  ], key: "relocation_willingness" },
+  { botMessage: "Hai già esperienza in questo settore?", options: [
+    { text: "Sì, ho esperienza", value: "Sì, ho esperienza" },
+    { text: "Sono alla prima esperienza", value: "Sono alla prima esperienza" },
+    { text: "Ho fatto uno stage", value: "Ho fatto uno stage" }
+  ], key: "experience_level" },
+  { botMessage: "Qual è il tuo titolo di studio più recente?", options: [
+    { text: "Diploma", value: "Diploma" },
+    { text: "Laurea", value: "Laurea" },
+    { text: "Master / PhD", value: "Master" },
+    { text: "Altro", value: "Altro" }
+  ], key: "education_level" },
+  { botMessage: "Che modalità di lavoro preferiresti?", options: [
+    { text: "In presenza", value: "In presenza" },
+    { text: "Ibrido (Smart Working)", value: "Ibrido" },
+    { text: "Full Remote", value: "Remote" },
+    { text: "Indifferente", value: "Indifferente" }
+  ], key: "work_preference" },
+  { botMessage: "Qual è il tuo preavviso attuale?", options: [
+    { text: "Immediato (Disponibile subito)", value: "Immediato" },
+    { text: "15 giorni", value: "15gg" },
+    { text: "30 giorni", value: "30gg" },
+    { text: "60+ giorni", value: "60gg" }
+  ], key: "notice_period" },
+  { botMessage: "Fantastico! 🎯\n\nSono qui per guidarti nel tuo percorso di ricerca del lavoro.\n\nSu JobTV puoi:\n\n✅ Creare un profilo professionale completo\n✅ Registrare brevi video di presentazione (è fondamentale! Le aziende così ti conoscono meglio)\n✅ Rispondere a semplici domande mentre sei vestito da colloquio - rilassati, non devi preoccuparti\n✅ Ricevere proposte dalle aziende in target per te\n✅ Iniziare a comunicare direttamente con loro\n\nSei pronto a iniziare? I tuoi video sono la chiave per farti scoprire dalle aziende giuste!", options: [
+    { text: "Registrati gratis →", value: "register_candidate", action: "register" }
+  ], key: "final_candidate_message" }
+];
+
+const companyFlowSteps: StepDefinition[] = [
+  { botMessage: "Benvenuto! Vuoi subito pubblicare un'offerta di lavoro o preferisci sapere prima come funziona?", options: [
+    { text: "Voglio pubblicare subito", value: "publish_now" },
+    { text: "Dimmi come funziona", value: "how_it_works" }
+  ], key: "company_initial_choice" },
+  { botMessage: "Che figura professionale stai cercando?", options: [
+    { text: "Operaio/Produzione", value: "Operaio/Produzione" },
+    { text: "Impiegato/Amministrazione", value: "Impiegato/Amministrazione" },
+    { text: "Commerciale", value: "Commerciale" },
+    { text: "Tecnico/IT", value: "Tecnico/IT" },
+    { text: "Altro...", value: "Altro" }
+  ], key: "job_role_company" },
+  { botMessage: "In quale zona cerchi il candidato?", isInput: true, key: "candidate_location_company" },
+  { botMessage: "Che tipo di contratto offri?", options: [
+    { text: "Tempo indeterminato", value: "Tempo indeterminato" },
+    { text: "Tempo determinato", value: "Tempo determinato" },
+    { text: "Part-time", value: "Part-time" },
+    { text: "Stage", value: "Stage" },
+    { text: "Altro", value: "Altro" }
+  ], key: "contract_type_company" },
+  { botMessage: "Quanta esperienza deve avere il candidato?", options: [
+    { text: "Prima esperienza va bene", value: "Prima esperienza va bene" },
+    { text: "Minimo 1-2 anni", value: "Minimo 1-2 anni" },
+    { text: "Minimo 3-5 anni", value: "Minimo 3-5 anni" },
+    { text: "Senior 5+ anni", value: "Senior 5+ anni" }
+  ], key: "experience_level_company" },
+  { botMessage: "Che tipo di realtà rappresenti?", options: [
+    { text: "Startup", value: "Startup" },
+    { text: "PMI (Piccola/Media Impresa)", value: "PMI" },
+    { text: "Grande Azienda / Gruppo", value: "Enterprise" },
+    { text: "Agenzia di Recruiting", value: "Agency" }
+  ], key: "company_type" },
+  { botMessage: "Qual è il budget RAL (Reddito Annuo Lordo) previsto per questa posizione?", options: [
+    { text: "Sotto i 25k", value: "<25k" },
+    { text: "25k - 35k", value: "25-35k" },
+    { text: "35k - 50k", value: "35-50k" },
+    { text: "Oltre 50k", value: ">50k" }
+  ], key: "salary_budget" },
+  { botMessage: "Entro quanto tempo vorreste inserire la risorsa?", options: [
+    { text: "Subito (Urgente)", value: "Urgente" },
+    { text: "Entro 1 mese", value: "1 mese" },
+    { text: "Entro 3 mesi", value: "3 mesi" },
+    { text: "Solo scouting preventivo", value: "Scouting" }
+  ], key: "hiring_timeline" },
+  { botMessage: "Eccellente! 🚀\n\nBenvenuto nel futuro del recruiting!\n\nSu JobTV le aziende come la tua possono:\n\n✅ Cercare nel database di candidati pre-qualificati\n✅ Creare e pubblicare le tue offerte di lavoro\n✅ Registrare un VIDEO della tua ricerca di personale (questo è fondamentale! Solo così capiamo cosa cerchi veramente e possiamo filtrare i candidati perfetti per te)\n✅ Ricevere like dai candidati in target che corrispondono al tuo profilo\n✅ Contattare direttamente i candidati che ti interessano\n\n💰 NON paghi nulla fino a quando non scegli un candidato e decidi di pagargli il primo mese di lavoro.\n\nInitiamo subito? Il tuo video è essenziale per trovare i migliori talenti!", options: [
+    { text: "💼 INIZIA ORA - Crea la Tua Offerta", value: "register_company", action: "register" }
+  ], key: "final_company_message" }
+];
+
+const candidateLoggedInFlowSteps: StepDefinition[] = [
+  { 
+    botMessage: "Bentornato! 👋 Sei pronto a farti notare dalle migliori aziende?\n\nEcco cosa ti suggerisco per avere successo:\n✅ Registra i tuoi video di presentazione (è fondamentale!)\n✅ Carica il tuo CV aggiornato in formato PDF\n✅ Monitora costantemente i match nella tua dashboard\n\nCosa vuoi fare oggi?", 
+    options: [
+      { text: "🎥 Registra Video", value: "record", action: "navigate", path: "/record-interview" },
+      { text: "📄 Carica CV", value: "cv", action: "navigate", path: "/candidate/profile" },
+      { text: "📊 Dashboard", value: "dashboard", action: "navigate", path: "/dashboard" }
+    ], 
+    key: "candidate_logged_in" 
+  }
+];
+
+const companyLoggedInFlowSteps: StepDefinition[] = [
+  { 
+    botMessage: "Bentornato! 🚀 Vuoi trovare il talento perfetto ancora più velocemente?\n\nEcco i segreti per un recruiting efficace su JobTV:\n✅ Registra un VIDEO della tua ricerca (fa la differenza!)\n✅ Metti più dettagli possibili nell'annuncio\n✅ Monitora i candidati che ti hanno messo Like\n\nIn cosa posso aiutarti oggi?", 
+    options: [
+      { text: "🎥 Registra Video", value: "record", action: "navigate", path: "/record-interview" },
+      { text: "💼 Crea Offerta", value: "create", action: "navigate", path: "/create-job-offer" },
+      { text: "📊 Dashboard", value: "dashboard", action: "navigate", path: "/company/dashboard" }
+    ], 
+    key: "company_logged_in" 
+  }
+];
+
+const candidateHasVideoFlowSteps: StepDefinition[] = [
+  { 
+    botMessage: "Bentornato! 👋 Ottimo lavoro con i tuoi video di presentazione! 🎥 Sono il modo migliore per farti notare dalle aziende.\n\nAssicurati che il tuo CV sia aggiornato e monitora costantemente i match nella tua dashboard per non perdere occasioni. Cosa vuoi fare oggi?", 
+    options: [
+      { text: "📊 Dashboard", value: "dashboard", action: "navigate", path: "/dashboard" },
+      { text: "📄 Gestisci CV", value: "cv", action: "navigate", path: "/candidate/profile" },
+      { text: "🎥 I miei Video", value: "videos", action: "navigate", path: "/video-interview" }
+    ], 
+    key: "candidate_has_video" 
+  }
+];
+
+const companyHasVideoFlowSteps: StepDefinition[] = [
+  { 
+    botMessage: "Bentornato! 🚀 Hai già registrato un video per la tua ricerca, eccellente! Questo aumenta del 95% l'efficacia del tuo annuncio.\n\nRicorda di inserire tutti i dettagli possibili nell'offerta e di controllare chi ti ha messo Like. Come posso aiutarti oggi?", 
+    options: [
+      { text: "📊 Dashboard", value: "dashboard", action: "navigate", path: "/company/dashboard" },
+      { text: "💼 Crea Offerta", value: "create", action: "navigate", path: "/create-job-offer" },
+      { text: "🎥 Gestisci Video", value: "videos", action: "navigate", path: "/record-interview" }
+    ], 
+    key: "company_has_video" 
+  }
+];
+
+const informativeFlowStep: StepDefinition = { botMessage: "JobTV rivoluziona il recruiting!", key: "informative_message" };
+
 const GuidedChatBot: React.FC = () => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [userType, setUserType] = useState<Role>(null);
+  const [hasVideo, setHasVideo] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const fetchUserType = async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (data) setUserType(data.user_type as Role);
+
+        // Controlla se l'utente ha già caricato dei video
+        const { count } = await supabase
+          .from('video_interviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('candidate_id', user.id);
+        
+        setHasVideo(!!count && count > 0);
+      };
+      fetchUserType();
+    } else {
+      setUserType(null);
+    }
+  }, [user]);
+
   // Renamed `isVisible` to `showCompanyOfferPopup` to reflect its current purpose
   const [showCompanyOfferPopup, setShowCompanyOfferPopup] = useState(() => {
     // Initialize from local storage, default to true if not found
@@ -44,128 +236,8 @@ const GuidedChatBot: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [userData, setUserData] = useState<Record<string, string>>({});
-  const navigate = useNavigate();
   const chatWindowRef = useRef<HTMLDivElement>(null);
-
-  // Define conversation steps
-  const initialBotMessage: Message = {
-    id: 1,
-    text: "Ciao! 👋 Sono JOBBOLO, il tuo assistente di lavoro! Sei un candidato o un'azienda?",
-    isBot: true,
-    options: [
-      { text: "Cerco lavoro", value: "candidate" },
-      { text: "Sono un'azienda", value: "company" }
-    ],
-    key: "role_selection"
-  };
-
-  const candidateFlowSteps: StepDefinition[] = [
-    { botMessage: "Perfetto! Che tipo di lavoro stai cercando?", options: [
-      { text: "Operaio/Produzione", value: "Operaio/Produzione" },
-      { text: "Ufficio/Amministrazione", value: "Ufficio/Amministrazione" },
-      { text: "Commerciale/Vendite", value: "Commerciale/Vendite" },
-      { text: "Informatica/Tech", value: "Informatica/Tech" },
-      { text: "Altro...", value: "Altro" }
-    ], key: "job_type" },
-    { botMessage: "In quale città o zona vorresti lavorare?", isInput: true, key: "location" },
-    { botMessage: "Che tipo di contratto preferisci?", options: [
-      { text: "Tempo indeterminato", value: "Tempo indeterminato" },
-      { text: "Tempo determinato", value: "Tempo determinato" },
-      { text: "Part-time", value: "Part-time" },
-      { text: "Stage/Tirocinio", value: "Stage/Tirocinio" },
-      { text: "Non ho preferenze", value: "Non ho preferenze" }
-    ], key: "contract_type" },
-    { botMessage: "Sei disposto a spostarti dalla tua città?", options: [
-      { text: "Sì, anche in tutta Italia", value: "Sì, anche in tutta Italia" },
-      { text: "Solo provincia", value: "Solo provincia" },
-      { text: "Max 30 km", value: "Max 30 km" },
-      { text: "No, solo nella mia città", value: "No, solo nella mia città" }
-    ], key: "relocation_willingness" },
-    { botMessage: "Hai già esperienza in questo settore?", options: [
-      { text: "Sì, ho esperienza", value: "Sì, ho esperienza" },
-      { text: "Sono alla prima esperienza", value: "Sono alla prima esperienza" },
-      { text: "Ho fatto uno stage", value: "Ho fatto uno stage" }
-    ], key: "experience_level" },
-    { botMessage: "Qual è il tuo titolo di studio più recente?", options: [
-      { text: "Diploma", value: "Diploma" },
-      { text: "Laurea", value: "Laurea" },
-      { text: "Master / PhD", value: "Master" },
-      { text: "Altro", value: "Altro" }
-    ], key: "education_level" },
-    { botMessage: "Che modalità di lavoro preferiresti?", options: [
-      { text: "In presenza", value: "In presenza" },
-      { text: "Ibrido (Smart Working)", value: "Ibrido" },
-      { text: "Full Remote", value: "Remote" },
-      { text: "Indifferente", value: "Indifferente" }
-    ], key: "work_preference" },
-    { botMessage: "Qual è il tuo preavviso attuale?", options: [
-      { text: "Immediato (Disponibile subito)", value: "Immediato" },
-      { text: "15 giorni", value: "15gg" },
-      { text: "30 giorni", value: "30gg" },
-      { text: "60+ giorni", value: "60gg" }
-    ], key: "notice_period" },
-    { botMessage: "Ottimo! 🎯 Ho già trovato aziende che potrebbero fare al caso tuo nella tua zona! Registrati gratis in 2 minuti, carica il tuo video di presentazione e ricevi subito i tuoi match. Le aziende ti contatteranno direttamente!", options: [
-      { text: "Registrati gratis →", value: "register_candidate", action: "register" }
-    ], key: "final_candidate_message" }
-  ];
-
-  const companyFlowSteps: StepDefinition[] = [
-    { botMessage: "Benvenuto! Vuoi subito pubblicare un'offerta di lavoro o preferisci sapere prima come funziona?", options: [
-      { text: "Voglio pubblicare subito", value: "publish_now" },
-      { text: "Dimmi come funziona", value: "how_it_works" }
-    ], key: "company_initial_choice" },
-    { botMessage: "Che figura professionale stai cercando?", options: [
-      { text: "Operaio/Produzione", value: "Operaio/Produzione" },
-      { text: "Impiegato/Amministrazione", value: "Impiegato/Amministrazione" },
-      { text: "Commerciale", value: "Commerciale" },
-      { text: "Tecnico/IT", value: "Tecnico/IT" },
-      { text: "Altro...", value: "Altro" }
-    ], key: "job_role_company" },
-    { botMessage: "In quale zona cerchi il candidato?", isInput: true, key: "candidate_location_company" },
-    { botMessage: "Che tipo di contratto offri?", options: [
-      { text: "Tempo indeterminato", value: "Tempo indeterminato" },
-      { text: "Tempo determinato", value: "Tempo determinato" },
-      { text: "Part-time", value: "Part-time" },
-      { text: "Stage", value: "Stage" },
-      { text: "Altro", value: "Altro" }
-    ], key: "contract_type_company" },
-    { botMessage: "Quanta esperienza deve avere il candidato?", options: [
-      { text: "Prima esperienza va bene", value: "Prima esperienza va bene" },
-      { text: "Minimo 1-2 anni", value: "Minimo 1-2 anni" },
-      { text: "Minimo 3-5 anni", value: "Minimo 3-5 anni" },
-      { text: "Senior 5+ anni", value: "Senior 5+ anni" }
-    ], key: "experience_level_company" },
-    { botMessage: "Che tipo di realtà rappresenti?", options: [
-      { text: "Startup", value: "Startup" },
-      { text: "PMI (Piccola/Media Impresa)", value: "PMI" },
-      { text: "Grande Azienda / Gruppo", value: "Enterprise" },
-      { text: "Agenzia di Recruiting", value: "Agency" }
-    ], key: "company_type" },
-    { botMessage: "Qual è il budget RAL (Reddito Annuo Lordo) previsto per questa posizione?", options: [
-      { text: "Sotto i 25k", value: "<25k" },
-      { text: "25k - 35k", value: "25-35k" },
-      { text: "35k - 50k", value: "35-50k" },
-      { text: "Oltre 50k", value: ">50k" }
-    ], key: "salary_budget" },
-    { botMessage: "Entro quanto tempo vorreste inserire la risorsa?", options: [
-      { text: "Subito (Urgente)", value: "Urgente" },
-      { text: "Entro 1 mese", value: "1 mese" },
-      { text: "Entro 3 mesi", value: "3 mesi" },
-      { text: "Solo scouting preventivo", value: "Scouting" }
-    ], key: "hiring_timeline" },
-    { botMessage: "Perfetto! 🚀 Abbiamo già candidati nella tua zona che cercano esattamente questo ruolo! Per scoprire i profili, vedere i loro video di presentazione e contattarli direttamente, registra la tua azienda e pubblica l'offerta. È gratis per iniziare!", options: [
-      { text: "Registra la tua azienda →", value: "register_company", action: "register" }
-    ], key: "final_company_message" }
-  ];
-
-  const informativeFlowStep: StepDefinition = {
-    botMessage: "JobTV è la piattaforma che rivoluziona il recruiting! 🎬 ✅ I candidati caricano un video di presentazione ✅ L'AI fa il matching con le tue offerte ✅ Tu vedi solo i candidati più adatti ✅ Risparmi ore di colloqui inutili Vuoi provare? È gratis!",
-    options: [
-      { text: "Sì, mi registro →", value: "register_company", action: "register" },
-      { text: "Ho altre domande", value: "back_to_company_main", action: "backToMain" }
-    ],
-    key: "informative_message"
-  };
+  const navigate = useNavigate();
 
   // Persist popup visibility states to local storage
   useEffect(() => {
@@ -190,10 +262,24 @@ const GuidedChatBot: React.FC = () => {
 
   // Initialize messages when chat opens
   useEffect(() => {
-    if (isOpen && messages.length === 0) {
+    if (isOpen && messages.length === 0 && user && userType) {
+      let flow = userType === 'candidate' ? candidateLoggedInFlowSteps : companyLoggedInFlowSteps;
+      
+      if (hasVideo) {
+        flow = userType === 'candidate' ? candidateHasVideoFlowSteps : companyHasVideoFlowSteps;
+      }
+
+      sendBotMessage({
+        id: Date.now(),
+        text: flow[0].botMessage,
+        isBot: true,
+        options: flow[0].options,
+        key: flow[0].key
+      });
+    } else if (isOpen && messages.length === 0) {
       setMessages([initialBotMessage]);
     }
-  }, [isOpen]);
+  }, [isOpen, user, userType, hasVideo]);
 
   // Auto-scroll to bottom of chat
   useEffect(() => {
@@ -221,10 +307,8 @@ const GuidedChatBot: React.FC = () => {
             key: flowSteps[0].key
           });
         }
-      } else {
-      setIsOpen(true);
-      // Messages will be initialized by the other useEffect when isOpen becomes true
-        // If no role is provided, start with initial role selection
+      } else if (messages.length === 0) {
+        if (user && userType) return;
         setMessages([initialBotMessage]);
       }
     };
@@ -272,7 +356,11 @@ const GuidedChatBot: React.FC = () => {
         setUserData(prev => ({ ...prev, [lastBotMessageWithOptions.key]: optionValue }));
     }
 
-    if (action === 'register') {
+    if (action === 'navigate' && path) {
+      navigate(path);
+      setIsOpen(false);
+      return;
+    } else if (action === 'register') {
       const params = new URLSearchParams({
         role: role || '',
         from_chat: 'true',
@@ -446,7 +534,7 @@ const GuidedChatBot: React.FC = () => {
           <div id="chat-messages" ref={chatWindowRef} className="flex-1 p-4 h-[400px] overflow-y-auto space-y-4 bg-gray-50/50">
             {messages.map(msg => (
               <div key={msg.id} className={`flex ${msg.isBot ? 'justify-start' : 'justify-end'}`}>
-                <div className={`max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed ${
+                <div className={`max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                   msg.isBot ? 'bg-white text-gray-800 rounded-tl-none border border-gray-100 shadow-sm' : 'bg-jobtv-blue text-white rounded-tr-none shadow-md'
                 }`}>
                   {msg.text}
@@ -475,12 +563,12 @@ const GuidedChatBot: React.FC = () => {
             <div className="p-4 border-t bg-white flex space-x-2">
               <Input 
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)} // Changed from handleSendMessage to handleUserResponse
-                onKeyDown={(e) => e.key === 'Enter' && handleUserResponse(inputValue, lastBotMessage.key)}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && lastBotMessage?.key && handleUserResponse(inputValue, lastBotMessage.key)}
                 placeholder="Scrivi qui la tua risposta..."
                 className="flex-1 rounded-full bg-gray-50 border-gray-200"
               />
-              <Button size="icon" onClick={() => handleUserResponse(inputValue, lastBotMessage.key)} className="bg-jobtv-blue rounded-full h-10 w-10 shrink-0">
+              <Button size="icon" onClick={() => lastBotMessage?.key && handleUserResponse(inputValue, lastBotMessage.key)} className="bg-jobtv-blue rounded-full h-10 w-10 shrink-0">
                 <Send className="w-4 h-4" />
               </Button>
             </div>

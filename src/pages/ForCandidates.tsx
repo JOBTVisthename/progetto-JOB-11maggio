@@ -57,7 +57,8 @@ const ForCandidates = () => {
                 </ul>
                 
                 <div className="mt-8">
-                  <Button asChild className="bg-white text-jobtv-blue hover:bg-gray-100 h-auto py-4 px-6 text-left flex flex-col items-start rounded-lg shadow-
+                  <Button asChild className="bg-white text-jobtv-blue hover:bg-gray-100 h-auto py-4 px-6 text-left flex flex-col items-start rounded-lg shadow-xl group border-2 border-jobtv-teal animate-pulse">
+                    <Link to="/register/candidate">
                       <span className="text-xs font-bold opacity-70 uppercase mb-1">Sei un Candidato?</span>
                       <span className="text-sm md:text-base font-extrabold leading-tight uppercase">CLICCA QUI</span>
                     </Link>

@@ -60,5 +60,3 @@ const Header: React.FC = () => {
 };
 
 export default Header;
-
-export default Header;

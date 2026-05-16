@@ -427,40 +427,44 @@ Il candidato ideale possiede eccellenti capacità organizzative e un forte orien
         </DialogContent>
       </Dialog>
 
-      {/* POPUP FINALE DI CONVERSIONE */}
-      <Dialog open={showFinalPopup} onOpenChange={(val) => !val && navigate('/company/dashboard')}>
-        <DialogContent className="sm:max-w-sm sm:left-auto sm:right-6 sm:top-24 sm:translate-x-0 sm:translate-y-0 p-6 bg-white/95 backdrop-blur-md shadow-2xl border border-gray-100">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-jobtv-gradient rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <CheckCircle2 className="w-8 h-8 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2 gradient-text uppercase tracking-tight">Offerta Pubblicata!</h2>
-            <p className="text-lg font-medium mb-6 leading-relaxed text-gray-700">
-              Vuoi trovare il candidato ideale ancora più velocemente?
-            </p>
-            <div className="bg-jobtv-teal/5 p-4 rounded-xl mb-8 border border-jobtv-teal/10">
-              <p className="text-sm font-bold text-jobtv-blue">
-                🎥 ORA REGISTRA UN VIDEO e aumenta del 95% la visibilità del tuo annuncio!
-              </p>
-            </div>
-            <div className="space-y-3">
-              <Button 
-                onClick={() => navigate('/record-interview')} 
-                className="w-full bg-jobtv-gradient text-white text-lg py-6 font-bold shadow-md hover:opacity-90"
-              >
-                REGISTRA VIDEO AZIENDALE <Video className="w-5 h-5 ml-2" />
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/company/dashboard')}
-                className="w-full border-gray-200 text-gray-500"
-              >
-                Vai alla Dashboard per ora
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* POPUP STATICO DI CONVERSIONE (NON MODALE) */}
+      {showFinalPopup && (
+        <div className="fixed bottom-10 right-10 z-[60] w-full max-w-[320px] animate-in fade-in slide-in-from-bottom-10 duration-500">
+          <Card className="shadow-2xl border-2 border-jobtv-blue relative overflow-hidden bg-white/95 backdrop-blur-md">
+            <button 
+              onClick={() => {
+                setShowFinalPopup(false);
+                navigate('/company/dashboard');
+              }}
+              className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-900 transition-colors z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <CardContent className="p-6">
+              <div className="text-center space-y-4">
+                <div className="w-12 h-12 bg-jobtv-gradient rounded-full flex items-center justify-center mx-auto shadow-md">
+                  <CheckCircle2 className="w-6 h-6 text-white" />
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-sm font-bold text-jobtv-blue uppercase">Annuncio Pubblicato!</h2>
+                  <p className="text-base font-extrabold leading-tight text-gray-800 uppercase">
+                    ORA REGISTRA IL VIDEO
+                  </p>
+                  <p className="text-xs font-medium text-gray-500">
+                    per ricevere <span className="text-jobtv-teal font-bold">LIKE</span> dai <span className="font-bold">CANDIDATI</span> in target
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => navigate('/record-interview')} 
+                  className="w-full bg-jobtv-gradient text-white font-bold shadow-lg py-6"
+                >
+                  INIZIA REGISTRAZIONE <Video className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Footer />
     </div>
