@@ -25,7 +25,7 @@ const interviewFormSchema = z.object({
 type InterviewFormValues = z.infer<typeof interviewFormSchema>;
 
 export default function RecordInterview() {
-16 maggio l  const { user, loading: authLoading, userType } = useAuth();
+  const { user, loading: authLoading, userType } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -174,7 +174,7 @@ export default function RecordInterview() {
       setStreamError(null); // Clear potential earlier errors if we got this far
     } catch (err: any) {
       console.error("Camera access error:", err);
-      let errorMsg = `Errore di accesso: ${err.message || "Impossibile accedere alla fotocamera e al microfono"}`;
+      let errorMsg = `Errore di accesso: ${err.message || "Impossibile accedere alla fotocamera e/o al microfono"}`;
       if (err.name === "NotAllowedError") {
         errorMsg = "Permesso negato: per favore concedi l'accesso alla fotocamera e al microfono.";
       } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
@@ -187,9 +187,9 @@ export default function RecordInterview() {
       setStreamError(errorMsg);
       setVideoDevices([]); // Clear devices list on error
     } finally {
-      setIsRequestingPermission(false); // Fix: reset flag
+      setIsRequestingPermission(false);
     }
-  }, [selectedDeviceId]); // Removed stream and isRequestingPermission to prevent loop
+  }, [selectedDeviceId, stream]); // Added stream to dependencies to ensure it's up-to-date
   useEffect(() => {
     if (!previewUrl && !stream && !streamError) {
       requestCameraPermission();

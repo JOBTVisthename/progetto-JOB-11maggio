@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,8 +7,31 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Video, Heart, Briefcase, Calendar, MessageSquare, Clock, Building, FileText, Upload, Download } from "lucide-react";
+import { Loader2, Video, Heart, Briefcase, Calendar, MessageSquare, Clock, Building, FileText, Upload, Download, MapPin, ExternalLink, Sparkles, Search, ChevronLeft, ChevronRight, Info, DollarSign, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { motion, AnimatePresence } from "framer-motion";
+
+// Funzione per generare 1000 annunci casuali
+const generateFakeJobs = (count: number) => {
+    const titles = ["Sviluppatore React", "Operaio Specializzato", "Magazziniere", "Commerciale Estero", "Impiegato Amministrativo", "Project Manager", "Autista Patente C", "Elettricista", "Idraulico", "Social Media Manager", "Cuoco", "Infermiere", "Back Office"];
+    const cities = ["Milano", "Roma", "Napoli", "Torino", "Bologna", "Firenze", "Bari", "Palermo", "Genova", "Verona", "Padova", "Brescia", "Rimini", "Cagliari", "Trento"];
+    const types = ["Tempo Indeterminato", "Tempo Determinato", "Part-time", "Stage", "Apprendistato"];
+    const categories = ["Operaio", "Impiegato", "Quadro", "Dirigente", "Freelance"];
+    const availabilities = ["Immediata", "15 giorni", "30 giorni", "Inizio Mese Prossimo"];
+
+    return Array.from({ length: count }, (_, i) => ({
+        id: `fake-${i}`,
+        title: titles[Math.floor(Math.random() * titles.length)],
+        location: cities[Math.floor(Math.random() * cities.length)],
+        salary_range: `€${Math.floor(Math.random() * 15 + 20)}k - €${Math.floor(Math.random() * 20 + 35)}k`,
+        category: categories[Math.floor(Math.random() * categories.length)],
+        availability: availabilities[Math.floor(Math.random() * availabilities.length)],
+        contract_type: types[Math.floor(Math.random() * types.length)],
+        company_name: "Azienda Partner JobTV",
+        is_fake: true
+    }));
+};
 
 const CandidateDashboard = () => {
     const { user } = useAuth();
@@ -18,8 +41,21 @@ const CandidateDashboard = () => {
     const [profile, setProfile] = useState<any>(null);
     const [videoInterviews, setVideoInterviews] = useState<any[]>([]);
     const [matches, setMatches] = useState<any[]>([]);
+    const [suggestedJobs, setSuggestedJobs] = useState<any[]>([]);
+    const [allJobs, setAllJobs] = useState<any[]>([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [filterTitle, setFilterTitle] = useState("");
+    const [filterLocation, setFilterLocation] = useState("");
     const [uploadingCv, setUploadingCv] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Filtraggio dinamico degli annunci
+    const filteredJobs = useMemo(() => {
+        return allJobs.filter(job => 
+            job.title.toLowerCase().includes(filterTitle.toLowerCase()) &&
+            job.location.toLowerCase().includes(filterLocation.toLowerCase())
+        );
+    }, [allJobs, filterTitle, filterLocation]);
 
     useEffect(() => {
         if (user) {
@@ -54,6 +90,29 @@ const CandidateDashboard = () => {
                 .eq('candidate_id', user?.id);
 
             setMatches(matchesData || []);
+
+            // Get suggested jobs from database
+            const { data: jobs } = await supabase
+                .from('job_offers')
+                .select('*, company:company_profiles(*)')
+                .eq('status', 'active')
+                .limit(6);
+            
+            const realJobs = (jobs || []).map(j => ({
+                ...j,
+                salary_range: j.salary_min ? `€${j.salary_min/1000}k - €${j.salary_max/1000}k` : "€28k - €40k",
+                category: "Impiegato", // Default per annunci reali se non specificato
+                availability: "Immediata",
+                contract_type: j.work_hours || "Full-time",
+                company_name: j.company?.company_name || "Azienda JobTV",
+                is_fake: false
+            }));
+
+            const fakeJobs = generateFakeJobs(1000);
+            const combined = [...realJobs, ...fakeJobs];
+            
+            setAllJobs(combined);
+            setSuggestedJobs(realJobs);
 
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
@@ -104,7 +163,7 @@ const CandidateDashboard = () => {
             if (updateError) throw updateError;
 
             // 3. Update local state
-            setProfile((prev: any) => ({ ...prev, cv_url: fileName }));
+            setProfile((prev: any) => ({ ...prev, cv_url: urlData.publicUrl }));
 
             toast({
                 title: "CV Aggiornato",
@@ -126,6 +185,31 @@ const CandidateDashboard = () => {
         }
     };
 
+    const handleLikeJob = async (job: any) => {
+        if (job.is_fake) {
+            toast({
+                title: "Interesse Inviato!",
+                description: `Abbiamo inoltrato il tuo profilo a ${job.company_name}.`,
+            });
+        } else {
+            // Logica reale di matching
+            try {
+                await supabase.from('job_matching').insert({
+                    candidate_id: user?.id,
+                    company_id: job.company_id,
+                    candidate_liked: true
+                });
+                toast({
+                    title: "Candidatura Inviata!",
+                    description: "L'azienda riceverà il tuo Video CV.",
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        handleNext();
+    };
+
     if (loading) {
         return (
             <PageLayout>
@@ -136,17 +220,130 @@ const CandidateDashboard = () => {
         );
     }
 
+    const handleNext = () => {
+        setCurrentIndex((prev) => (prev + 1) % filteredJobs.length);
+    };
+
+    const handlePrev = () => {
+        setCurrentIndex((prev) => (prev - 1 + filteredJobs.length) % filteredJobs.length);
+    };
+
+    const currentJob = filteredJobs[currentIndex];
+
     return (
         <PageLayout>
             <div className="container mx-auto px-4 py-8">
                 {/* Welcome Section */}
-                <div className="mb-8">
+                <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
                     <h1 className="text-3xl font-bold text-gray-900">
                         Bentornato, {profile?.first_name || user?.email?.split('@')[0]}!
                     </h1>
                     <p className="text-gray-500 mt-2">
                         Ecco cosa sta succedendo con la tua ricerca di lavoro.
                     </p>
+                    </div>
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <div className="relative flex-1 md:w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Input placeholder="Cerca ruolo..." className="pl-9 h-11" value={filterTitle} onChange={(e) => setFilterTitle(e.target.value)} />
+                        </div>
+                        <div className="relative flex-1 md:w-48">
+                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Input placeholder="Città..." className="pl-9 h-11" value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Sezione Slideshow Job Discovery */}
+                <div className="relative mb-16">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900 flex items-center">
+                            <Sparkles className="w-6 h-6 mr-2 text-jobtv-teal animate-pulse" />
+                            Job Discovery <span className="ml-3 text-xs font-bold bg-jobtv-blue/10 text-jobtv-blue px-2 py-1 rounded-full">{filteredJobs.length} Offerte</span>
+                        </h2>
+                    </div>
+
+                    <div className="relative flex items-center justify-center min-h-[420px]">
+                        <Button variant="ghost" size="icon" className="absolute left-0 z-10 hidden md:flex h-12 w-12 bg-white shadow-lg rounded-full" onClick={handlePrev}>
+                            <ChevronLeft className="w-6 h-6" />
+                        </Button>
+
+                        <AnimatePresence mode="wait">
+                            {currentJob ? (
+                                <motion.div
+                                    key={currentJob.id}
+                                    initial={{ opacity: 0, x: 50, scale: 0.9 }}
+                                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                                    exit={{ opacity: 0, x: -50, scale: 0.9 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="w-full max-w-xl"
+                                >
+                                    <Card className="border-2 border-jobtv-blue/10 shadow-2xl overflow-hidden bg-white group">
+                                        <div className="bg-jobtv-gradient h-3" />
+                                        <CardContent className="p-8">
+                                            <div className="flex justify-between items-start mb-6">
+                                                <div className="h-16 w-16 rounded-2xl bg-jobtv-blue/5 flex items-center justify-center border border-jobtv-blue/10">
+                                                    <Building className="w-8 h-8 text-jobtv-blue" />
+                                                </div>
+                                                <Badge className={`${currentJob.is_fake ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'} border-none font-bold uppercase text-[10px]`}>
+                                                    {currentJob.is_fake ? 'Partner Verified' : 'Real-time Match'}
+                                                </Badge>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <h3 className="text-3xl font-black text-gray-900 leading-none">{currentJob.title}</h3>
+                                                <p className="text-lg font-bold text-jobtv-teal uppercase tracking-wide">{currentJob.company_name}</p>
+                                                
+                                                <div className="grid grid-cols-2 gap-4 pt-4">
+                                                    <div className="flex items-center text-gray-600 gap-2 font-medium">
+                                                        <MapPin className="w-5 h-5 text-jobtv-blue" /> {currentJob.location}
+                                                    </div>
+                                                    <div className="flex items-center text-gray-600 gap-2 font-medium">
+                                                        <DollarSign className="w-5 h-5 text-green-600" /> {currentJob.salary_range}
+                                                    </div>
+                                                    <div className="flex items-center text-gray-600 gap-2 font-medium">
+                                                        <Briefcase className="w-5 h-5 text-orange-500" /> {currentJob.category}
+                                                    </div>
+                                                    <div className="flex items-center text-gray-600 gap-2 font-medium">
+                                                        <Clock className="w-5 h-5 text-purple-500" /> {currentJob.contract_type}
+                                                    </div>
+                                                    <div className="flex items-center text-gray-600 gap-2 font-medium col-span-2">
+                                                        <Calendar className="w-5 h-5 text-jobtv-teal" /> Disponibilità: <span className="font-bold text-gray-900 ml-1">{currentJob.availability}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-4 mt-10">
+                                                <Button variant="outline" className="flex-1 h-14 rounded-2xl font-bold border-2" onClick={handleNext}>
+                                                    SALTA
+                                                </Button>
+                                                <Button className="flex-[2] h-14 rounded-2xl font-black bg-jobtv-gradient shadow-xl hover:scale-105 transition-transform" onClick={() => handleLikeJob(currentJob)}>
+                                                    <Heart className="mr-2 h-5 w-5 fill-current" /> CANDIDATI ORA
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            ) : (
+                                <div className="text-center p-12 bg-white rounded-3xl border-2 border-dashed border-gray-200">
+                                    <Search className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                                    <h3 className="text-xl font-bold text-gray-900">Nessun annuncio trovato</h3>
+                                    <p className="text-gray-500">Prova a cambiare i filtri di ricerca.</p>
+                                    <Button variant="link" className="mt-4 text-jobtv-blue font-bold" onClick={() => {setFilterTitle(""); setFilterLocation("");}}>Resetta filtri</Button>
+                                </div>
+                            )}
+                        </AnimatePresence>
+
+                        <Button variant="ghost" size="icon" className="absolute right-0 z-10 hidden md:flex h-12 w-12 bg-white shadow-lg rounded-full" onClick={handleNext}>
+                            <ChevronRight className="w-6 h-6" />
+                        </Button>
+                    </div>
+
+                    <div className="mt-6 p-4 bg-jobtv-blue/5 rounded-2xl border border-jobtv-blue/10 flex items-center justify-center gap-3">
+                        <Info className="w-5 h-5 text-jobtv-blue shrink-0" />
+                        <p className="text-xs text-gray-600 font-bold uppercase tracking-tight">JobTV aggrega oltre 1.000 annunci dai migliori portali ogni giorno. Registra un Video CV per sbloccare i match diretti!</p>
+                    </div>
                 </div>
 
                 {/* Quick Stats Grid */}

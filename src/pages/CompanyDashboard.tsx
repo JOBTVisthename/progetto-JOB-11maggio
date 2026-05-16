@@ -239,7 +239,7 @@ const CompanyDashboard = () => {
                                     className="w-full bg-jobtv-gradient text-white shadow-lg hover:scale-105 transition-all duration-300"
                                     onClick={() => {
                                         setShowNewOfferPopup(false);
-                                        window.location.href = "/create-job-offer";
+                                        navigate("/create-job-offer");
                                     }}
                                 >
                                     Vai a pubblicare

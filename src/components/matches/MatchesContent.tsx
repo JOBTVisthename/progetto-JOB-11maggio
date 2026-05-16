@@ -4,6 +4,7 @@ import MatchList from "@/components/matches/MatchList";
 import EmptyMatchState from "./EmptyMatchState";
 import { UserType } from "@/hooks/useMatches";
 import { toggleLike } from "./MatchService";
+import { useToast } from "@/components/ui/use-toast";
 
 interface MatchesContentProps {
   matches: any[];
@@ -12,8 +13,38 @@ interface MatchesContentProps {
 }
 
 export default function MatchesContent({ matches, userType, setMatches }: MatchesContentProps) {
+  const { toast } = useToast();
+
   const handleLikeToggle = async (matchId: string, liked: boolean) => {
-    await toggleLike(matchId, liked, userType, matches, setMatches);
+    try {
+      const result = await toggleLike(matchId, liked, userType);
+      
+      if (result.data) {
+        // Aggiorna lo stato locale con i dati restituiti dal database
+        setMatches(matches.map(m => m.id === matchId ? result.data : m));
+        
+        if (result.isNewMatch) {
+          toast({
+            title: "Match confermato! 🎉",
+            description: "Entrambi avete espresso interesse. Ora potete contattarvi.",
+          });
+        } else {
+          toast({
+            title: liked ? "Like aggiunto" : "Like rimosso",
+            description: liked 
+              ? "Hai espresso interesse per questo profilo" 
+              : "Hai rimosso il tuo interesse",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Errore durante il like:", error);
+      toast({
+        title: "Errore",
+        description: "Impossibile aggiornare la preferenza.",
+        variant: "destructive",
+      });
+    }
   };
 
   const pendingMatches = matches.filter(m => m.match_status === 'pending');

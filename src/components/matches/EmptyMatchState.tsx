@@ -27,7 +27,7 @@ export default function EmptyMatchState({ userType, message, title }: EmptyMatch
           <DialogHeader>
             <DialogTitle className="text-center">Nessun match disponibile</DialogTitle>
             <DialogDescription className="text-center">
-              METTI UN ANNUCIO e REGISTRA IL TUO VIDEO ORA
+              METTI UN ANNUNCIO e REGISTRA IL TUO VIDEO ORA
             </DialogDescription>
           </DialogHeader>
 

@@ -257,6 +257,10 @@ const GuidedChatBot: React.FC = () => {
   const [showCandidateOfferPopup, setShowCandidateOfferPopup] = useState(() => {
     return localStorage.getItem('jobtv_showCandidateOfferPopup') !== 'false';
   });
+  // Nuovo stato per il popup "Non hai trovato candidati?"
+  const [showNoCandidatesPopup, setShowNoCandidatesPopup] = useState(() => {
+    return localStorage.getItem('jobtv_showNoCandidatesPopup') !== 'false';
+  });
   const [step, setStep] = useState(0); // 0: initial role selection, 1+: flow specific steps
   const [role, setRole] = useState<Role>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -273,6 +277,10 @@ const GuidedChatBot: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('jobtv_showCandidateOfferPopup', String(showCandidateOfferPopup));
   }, [showCandidateOfferPopup]);
+
+  useEffect(() => {
+    localStorage.setItem('jobtv_showNoCandidatesPopup', String(showNoCandidatesPopup));
+  }, [showNoCandidatesPopup]);
   // Carica i dati salvati all'avvio
   useEffect(() => {
     const saved = localStorage.getItem('jobtv_chat_draft');

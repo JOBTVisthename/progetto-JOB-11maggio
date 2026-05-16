@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-lastimport { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -60,20 +60,20 @@ const Settings: React.FC = () => {
           navigate("/login");
           return;
         }
-
-        const { data, error } = await supabase
+        
+        // Fetch common profile data from 'profiles' table
+        const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("user_type, first_name, last_name, company_name, city, phone")
           .eq("id", user.id)
           .single();
 
-        if (error) throw error;
+        if (profileError) throw profileError;
 
-        const typedData = data as unknown as {
+        const typedData = profileData as unknown as {
           user_type?: UserType;
           first_name?: string | null;
           last_name?: string | null;
-          company_name?: string | null;
           city?: string | null;
           phone?: string | null;
         };
@@ -88,12 +88,35 @@ const Settings: React.FC = () => {
             city: typedData?.city ?? "",
             phone: typedData?.phone ?? "",
           });
+          // Also fetch candidate specific data if needed, though current form only uses common fields
+          const { data: candidateSpecificData } = await supabase
+            .from("candidate_profiles")
+            .select("first_name, last_name, city, phone") // Re-fetch to ensure consistency if these fields are duplicated
+            .eq("id", user.id)
+            .single();
+          if (candidateSpecificData) {
+            setCandidateProfile({
+              first_name: candidateSpecificData.first_name ?? "",
+              last_name: candidateSpecificData.last_name ?? "",
+              city: candidateSpecificData.city ?? "",
+              phone: candidateSpecificData.phone ?? "",
+            });
+          }
         } else if (type === "company") {
-          setCompanyProfile({
-            company_name: typedData?.company_name ?? "",
-            city: typedData?.city ?? "",
-            phone: typedData?.phone ?? "",
-          });
+          // Fetch company specific data
+          const { data: companySpecificData, error: companySpecificError } = await supabase
+            .from("company_profiles")
+            .select("company_name, city, phone")
+            .eq("id", user.id)
+            .single();
+          if (companySpecificError) throw companySpecificError;
+          if (companySpecificData) {
+            setCompanyProfile({
+              company_name: companySpecificData.company_name ?? "",
+              city: companySpecificData.city ?? "",
+              phone: companySpecificData.phone ?? "",
+            });
+          }
         }
       } catch (error: any) {
         toast.error("Errore nel caricamento del profilo");
@@ -117,52 +140,49 @@ const Settings: React.FC = () => {
       if (!user) return;
 
       if (userType === "candidate") {
-        const payload = {
-          first_name: candidateProfile.first_name.trim(),
-          last_name: candidateProfile.last_name.trim(),
-          city: candidateProfile.city.trim(),
-          phone: candidateProfile.phone.trim(),
-          updated_at: new Date().toISOString(),
-        } as unknown;
-
-        // Aggiorna anche candidate_profiles per consistenza
-        await supabase
+        // Update candidate_profiles table
+        const { error: candError } = await supabase
           .from("candidate_profiles")
           .update({
             first_name: candidateProfile.first_name.trim(),
             last_name: candidateProfile.last_name.trim(),
             city: candidateProfile.city.trim(),
+            phone: candidateProfile.phone.trim(),
           })
           .eq("id", user.id);
+        if (candError) throw candError;
 
-        // Aggiorna anche company_profiles per consistenza
-        await supabase
+        // Update common fields in profiles table if they exist there
+        const { error: profError } = await supabase
+          .from("profiles")
+          .update({
+            first_name: candidateProfile.first_name.trim(),
+            last_name: candidateProfile.last_name.trim(),
+            city: candidateProfile.city.trim(),
+            phone: candidateProfile.phone.trim(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", user.id);
+        if (profError) throw profError;
+      } else if (userType === "company") {
+        
+        // Update company_profiles table
+        const { error: companyError } = await supabase
           .from("company_profiles")
           .update({
             company_name: companyProfile.company_name.trim(),
+            city: companyProfile.city.trim(),
+            phone: companyProfile.phone.trim(),
           })
           .eq("id", user.id);
+        if (companyError) throw companyError;
 
-        const { error } = await supabase
+        // Update common fields in profiles table if they exist there
+        const { error: profilesError } = await supabase
           .from("profiles")
-          .update(payload as never)
+          .update({ company_name: companyProfile.company_name.trim(), city: companyProfile.city.trim(), phone: companyProfile.phone.trim(), updated_at: new Date().toISOString() })
           .eq("id", user.id);
-
-        if (error) throw error;
-      } else if (userType === "company") {
-        const payload = {
-          company_name: companyProfile.company_name.trim(),
-          city: companyProfile.city.trim(),
-          phone: companyProfile.phone.trim(),
-          updated_at: new Date().toISOString(),
-        } as unknown;
-
-        const { error } = await supabase
-          .from("profiles")
-          .update(payload as never)
-          .eq("id", user.id);
-
-        if (error) throw error;
+        if (profilesError) throw profilesError;
       } else {
         toast.error("Tipo profilo non riconosciuto. Riprova.");
         return;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ interface Conversation extends Match {
 
 export default function Messages() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [userType, setUserType] = useState<UserType>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
@@ -166,6 +168,17 @@ export default function Messages() {
 
     fetchConversations();
   }, [user, userType]);
+
+  // Gestione apertura automatica chat da parametro URL
+  useEffect(() => {
+    const matchId = searchParams.get("matchId");
+    if (matchId && conversations.length > 0) {
+      const conversation = conversations.find(c => c.id === matchId);
+      if (conversation) {
+        handleSelectConversation(conversation);
+      }
+    }
+  }, [searchParams, conversations]);
 
   // Realtime subscription for new messages
   useEffect(() => {
