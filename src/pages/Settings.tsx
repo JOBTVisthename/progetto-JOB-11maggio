@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+lastimport { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,6 +124,24 @@ const Settings: React.FC = () => {
           phone: candidateProfile.phone.trim(),
           updated_at: new Date().toISOString(),
         } as unknown;
+
+        // Aggiorna anche candidate_profiles per consistenza
+        await supabase
+          .from("candidate_profiles")
+          .update({
+            first_name: candidateProfile.first_name.trim(),
+            last_name: candidateProfile.last_name.trim(),
+            city: candidateProfile.city.trim(),
+          })
+          .eq("id", user.id);
+
+        // Aggiorna anche company_profiles per consistenza
+        await supabase
+          .from("company_profiles")
+          .update({
+            company_name: companyProfile.company_name.trim(),
+          })
+          .eq("id", user.id);
 
         const { error } = await supabase
           .from("profiles")

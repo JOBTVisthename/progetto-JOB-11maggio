@@ -25,7 +25,7 @@ const interviewFormSchema = z.object({
 type InterviewFormValues = z.infer<typeof interviewFormSchema>;
 
 export default function RecordInterview() {
-  const { user, loading: authLoading } = useAuth();
+16 maggio l  const { user, loading: authLoading, userType } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -56,7 +56,7 @@ export default function RecordInterview() {
     },
   });
 
-  const questions = [
+  const candidateQuestions = [
     'Qual è il tuo nome completo?',
     'Qual è il titolo di lavoro che desideri?',
     'Quando sei nato/a?',
@@ -72,6 +72,15 @@ export default function RecordInterview() {
     'Sei disponibile per lavoro a turni?'
   ];
 
+  const companyQuestions = [
+    'Presenta brevemente la tua azienda',
+    'Che figura state cercando in questo momento?',
+    'Quali sono i valori principali del vostro team?',
+    'Perché un candidato dovrebbe scegliere voi?',
+    'Qual è la sfida principale di questo ruolo?'
+  ];
+
+  const questions = userType === 'company' ? companyQuestions : candidateQuestions;
   const QUESTION_DURATION = Math.round(60 / questions.length);
 
   useEffect(() => {

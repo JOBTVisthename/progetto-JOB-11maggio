@@ -90,10 +90,15 @@ const CandidateDashboard = () => {
 
             if (uploadError) throw uploadError;
 
-            // 2. Update Profile using only the fileName path
+            // 2. Get Public URL
+            const { data: urlData } = supabase.storage
+                .from('candidate-cvs')
+                .getPublicUrl(fileName);
+
+            // 3. Update Profile using the full URL for consistency
             const { error: updateError } = await supabase
                 .from('candidate_profiles')
-                .update({ cv_url: fileName })
+                .update({ cv_url: urlData.publicUrl })
                 .eq('id', user.id);
 
             if (updateError) throw updateError;

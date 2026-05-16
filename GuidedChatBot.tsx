@@ -70,6 +70,12 @@ const candidateFlowSteps: StepDefinition[] = [
     { text: "Sono alla prima esperienza", value: "Sono alla prima esperienza" },
     { text: "Ho fatto uno stage", value: "Ho fatto uno stage" }
   ], key: "experience_level" },
+    { botMessage: "Che tipo di disponibilità oraria avresti?", options: [
+      { text: "Full-time", value: "Full-time" },
+      { text: "Part-time", value: "Part-time" },
+      { text: "Turni", value: "Turni" },
+      { text: "Cicli stagionali", value: "Stagionale" }
+    ], key: "availability_type" },
   { botMessage: "Qual è il tuo titolo di studio più recente?", options: [
     { text: "Diploma", value: "Diploma" },
     { text: "Laurea", value: "Laurea" },
@@ -88,6 +94,12 @@ const candidateFlowSteps: StepDefinition[] = [
     { text: "30 giorni", value: "30gg" },
     { text: "60+ giorni", value: "60gg" }
   ], key: "notice_period" },
+  { botMessage: "Ultima cosa importante: qual è la tua motivazione principale per cambiare lavoro?", options: [
+    { text: "Crescita professionale", value: "Crescita" },
+    { text: "Miglioramento economico", value: "Stipendio" },
+    { text: "Ambiente di lavoro migliore", value: "Ambiente" },
+    { text: "Nuove sfide tecnologiche", value: "Sfide" }
+  ], key: "motivation" },
   { botMessage: "Fantastico! 🎯\n\nSono qui per guidarti nel tuo percorso di ricerca del lavoro.\n\nSu JobTV puoi:\n\n✅ Creare un profilo professionale completo\n✅ Registrare brevi video di presentazione (è fondamentale! Le aziende così ti conoscono meglio)\n✅ Rispondere a semplici domande mentre sei vestito da colloquio - rilassati, non devi preoccuparti\n✅ Ricevere proposte dalle aziende in target per te\n✅ Iniziare a comunicare direttamente con loro\n\nSei pronto a iniziare? I tuoi video sono la chiave per farti scoprire dalle aziende giuste!", options: [
     { text: "Registrati gratis →", value: "register_candidate", action: "register" }
   ], key: "final_candidate_message" }
@@ -119,6 +131,12 @@ const companyFlowSteps: StepDefinition[] = [
     { text: "Minimo 3-5 anni", value: "Minimo 3-5 anni" },
     { text: "Senior 5+ anni", value: "Senior 5+ anni" }
   ], key: "experience_level_company" },
+  { botMessage: "Qual è la dimensione della vostra azienda?", options: [
+    { text: "Micro (1-10 dipendenti)", value: "Micro" },
+    { text: "Piccola (11-50 dipendenti)", value: "Piccola" },
+    { text: "Media (51-250 dipendenti)", value: "Media" },
+    { text: "Grande (oltre 250)", value: "Grande" }
+  ], key: "company_size" },
   { botMessage: "Che tipo di realtà rappresenti?", options: [
     { text: "Startup", value: "Startup" },
     { text: "PMI (Piccola/Media Impresa)", value: "PMI" },
@@ -137,6 +155,13 @@ const companyFlowSteps: StepDefinition[] = [
     { text: "Entro 3 mesi", value: "3 mesi" },
     { text: "Solo scouting preventivo", value: "Scouting" }
   ], key: "hiring_timeline" },
+  { botMessage: "Quali sono i principali benefit che offrite ai dipendenti?", options: [
+    { text: "Buoni pasto / Mensa", value: "Buoni pasto" },
+    { text: "Assicurazione sanitaria / Welfare", value: "Welfare" },
+    { text: "Formazione pagata", value: "Formazione" },
+    { text: "Auto aziendale / Mezzi", value: "Auto" },
+    { text: "Nessun benefit particolare", value: "Nessuno" }
+  ], key: "benefits_offered" },
   { botMessage: "Eccellente! 🚀\n\nBenvenuto nel futuro del recruiting!\n\nSu JobTV le aziende come la tua possono:\n\n✅ Cercare nel database di candidati pre-qualificati\n✅ Creare e pubblicare le tue offerte di lavoro\n✅ Registrare un VIDEO della tua ricerca di personale (questo è fondamentale! Solo così capiamo cosa cerchi veramente e possiamo filtrare i candidati perfetti per te)\n✅ Ricevere like dai candidati in target che corrispondono al tuo profilo\n✅ Contattare direttamente i candidati che ti interessano\n\n💰 NON paghi nulla fino a quando non scegli un candidato e decidi di pagargli il primo mese di lavoro.\n\nInitiamo subito? Il tuo video è essenziale per trovare i migliori talenti!", options: [
     { text: "💼 INIZIA ORA - Crea la Tua Offerta", value: "register_company", action: "register" }
   ], key: "final_company_message" }
@@ -208,11 +233,12 @@ const GuidedChatBot: React.FC = () => {
           .maybeSingle();
         if (data) setUserType(data.user_type as Role);
 
-        // Controlla se l'utente ha già caricato dei video
+        // Controlla se l'utente ha già caricato dei video (adattato per entrambi i ruoli)
+        const columnCheck = data?.user_type === 'candidate' ? 'candidate_id' : 'company_id';
         const { count } = await supabase
           .from('video_interviews')
           .select('*', { count: 'exact', head: true })
-          .eq('candidate_id', user.id);
+          .eq(columnCheck, user.id);
         
         setHasVideo(!!count && count > 0);
       };
@@ -347,7 +373,7 @@ const GuidedChatBot: React.FC = () => {
     }, 600);
   };
 
-  const handleOptionClick = (optionValue: string, optionText: string, action?: 'register' | 'backToMain') => {
+  const handleOptionClick = (optionValue: string, optionText: string, action?: 'register' | 'backToMain' | 'navigate', path?: string) => {
     setMessages(prev => [...prev, { id: Date.now(), text: optionText, isBot: false }]);
     
     // Store the option value using the key from the last bot message that presented options
@@ -549,7 +575,7 @@ const GuidedChatBot: React.FC = () => {
                   <Button
                     key={index}
                     variant="outline"
-                    onClick={() => handleOptionClick(option.value, option.text, option.action)}
+                    onClick={() => handleOptionClick(option.value, option.text, option.action, option.path)}
                     className="justify-start text-xs border-jobtv-blue/20 hover:bg-jobtv-blue/5"
                   >
                     {option.text}

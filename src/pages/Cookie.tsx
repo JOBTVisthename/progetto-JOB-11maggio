@@ -1,15 +1,12 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Cookie as CookieIcon, Settings, ExternalLink, Shield } from 'lucide-react';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
+import PageLayout from "@/components/layout/PageLayout";
 
 const Cookie: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-gray-50/50 to-white">
-      <Header />
-
-      <main className="section-padding">
+    <PageLayout>
+      <div className="min-h-screen bg-gradient-to-b from-white via-gray-50/50 to-white py-10">
         <div className="container container-padding max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
@@ -156,7 +153,7 @@ const Cookie: React.FC = () => {
             <Card className="bg-gradient-to-br from-gray-50 to-white border-gray-200">
               <CardContent className="p-6">
                 <div className="text-center">
-                  <p className="text-sm text-gray-500 mb-2">Ultimo aggiornamento: 1 Dicembre 2025</p>
+                  <p className="text-sm text-gray-500 mb-2">Ultimo aggiornamento: 28 Gennaio 2025</p>
                   <p className="text-xs text-gray-400">Versione: v1.0 – Cookie Policy Job TV</p>
                 </div>
               </CardContent>
@@ -177,10 +174,8 @@ const Cookie: React.FC = () => {
             </Card>
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </PageLayout>
   );
 };
 
@@ -241,7 +236,7 @@ const TableContent: React.FC<TableContentProps> = ({ headers, rows }) => (
       <thead>
         <tr className="bg-gray-50">
           {headers.map((header, i) => (
-            <th key={i} className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-900">
+            <th key={i} scope="col" className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-900">
               {header}
             </th>
           ))}

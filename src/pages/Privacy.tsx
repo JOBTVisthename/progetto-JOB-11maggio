@@ -1,15 +1,12 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Shield, Mail, Building2, FileText } from 'lucide-react';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
+import PageLayout from "@/components/layout/PageLayout";
 
 const Privacy: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-gray-50/50 to-white">
-      <Header />
-
-      <main className="section-padding">
+    <PageLayout>
+      <div className="min-h-screen bg-gradient-to-b from-white via-gray-50/50 to-white py-10">
         <div className="container container-padding max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
@@ -44,7 +41,7 @@ const Privacy: React.FC = () => {
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-500">
-                Ultimo aggiornamento: 10/01/2026
+                Ultimo aggiornamento: 28/01/2025
               </div>
             </CardContent>
           </Card>
@@ -189,10 +186,8 @@ const Privacy: React.FC = () => {
             </Section>
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </PageLayout>
   );
 };
 
@@ -229,7 +224,7 @@ const TableContent: React.FC<TableContentProps> = ({ headers, rows }) => (
       <thead>
         <tr className="bg-gray-50">
           {headers.map((header, i) => (
-            <th key={i} className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900">
+            <th key={i} scope="col" className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900">
               {header}
             </th>
           ))}
